@@ -51,6 +51,5 @@ print.bhsdtr_samples = function(x, digits = 2, probs = c(.025, .975), ...){
         rownames(tbl) = dimnames(x)[[2]]
         names(tbl) = dimnames(x)[[3]]
         print(as.data.frame(t(tbl)))
-## }
     invisible(x)
 }

@@ -14,6 +14,22 @@ bhsdtr(
   ...
 )
 }
+\arguments{
+\item{model_formulae}{a vector of lmer-style model formulae for
+the parameters of the model}
+
+\item{response_formula}{a formula specifying the names of the
+response variable and the stimulus variable}
+
+\item{links}{a list specyfing the link functions}
+
+\item{fit_method}{either 'ml' or 'stan'}
+
+\item{thresholds_scale}{thresholds scaling factor (see the bhsdtr preprint)}
+}
+\value{
+a bhsdtr_model object
+}
 \description{
 main interface
 }

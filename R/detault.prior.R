@@ -10,9 +10,9 @@ default_prior = function(par, len, prior.par, model, links, K){
                   eta = list(fixed_mu = 0, fixed_sd = 3))
     ## prior dla delta zależy od modelu
     if(model == 'metad'){
-        priors$delta = list(fixed_mu = rep(acc_to_delta(.75), 2), fixed_sd = rep(.5 * (acc_to_delta(.99) - acc_to_delta(.51)), 2))
+        priors$delta = list(fixed_mu = rep(acc.to.delta(.75), 2), fixed_sd = rep(.5 * (acc.to.delta(.99) - acc.to.delta(.51)), 2))
     }else{
-        priors$delta = list(fixed_mu = acc_to_delta(.75) , fixed_sd = .5 * (acc_to_delta(.99) - acc_to_delta(.51)))
+        priors$delta = list(fixed_mu = acc.to.delta(.75) , fixed_sd = .5 * (acc.to.delta(.99) - acc.to.delta(.51)))
     }
     ## prior dla gamma zależy od funkcji łączącej
     if(links$gamma == 'twoparameter'){

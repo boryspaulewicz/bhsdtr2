@@ -3,7 +3,16 @@
 ##' get posterior samples or ml point estimates per condition
 ##'
 ##' @export
-condition.specific.samples = function(m, par, group = NULL, fit = c('stan', 'ml'), include.vars = NULL){
+condition.specific.samples = function(m, par, group = NULL, fit = NULL, include.vars = NULL){
+    if(is.null(fit)){
+        if(!is.null(m$stanfit)){
+            fit = 'stan'
+        }else if(!is.null(m$mlfit)){
+            fit = 'ml'
+        }else{
+            stop('This model was not fitted')
+        }
+    }
     fixed.formula = m$fixed[[par]]
     vnames = unique(c(names(get_all_vars(fixed.formula, m$adata$data)), include.vars))
     if(!is.null(group)){
@@ -50,7 +59,7 @@ condition.specific.samples = function(m, par, group = NULL, fit = c('stan', 'ml'
             ## adding the random effects
             for(con in 1:nrow(data)){
                 result[s,,con] = result[s,,con] +
-                    samples.ranef[s, data[[group.name]][con],,] %*% t(Z[con, ])
+                    samples.ranef[s, data[[group.name]][con],,,drop=F] %*% t(Z[con,,drop = F ])
             }
         }
     }

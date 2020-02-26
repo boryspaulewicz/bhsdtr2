@@ -1,7 +1,15 @@
 ## -*- coding: utf-8 -*-
 
 ##' main interface
-##' 
+##'
+##' @param model_formulae a vector of lmer-style model formulae for
+##'     the parameters of the model
+##' @param response_formula a formula specifying the names of the
+##'     response variable and the stimulus variable
+##' @param links a list specyfing the link functions
+##' @param fit_method either 'ml' or 'stan'
+##' @param thresholds_scale thresholds scaling factor (see the bhsdtr preprint)
+##' @return a bhsdtr_model object
 ##' @export
 bhsdtr = function(model_formulae, response_formula, data,
                   links = list(gamma = 'log_distance'), fit_method = 'ml',
@@ -52,6 +60,8 @@ bhsdtr = function(model_formulae, response_formula, data,
         model = 'sdt'
     }else if(setequal(pars, c('metad', 'thr'))){
         model = 'metad'
+    }else if(setequal(pars, c('metad', 'thr', 'sdratio'))){
+        model = 'uvmetad'
     }else if(setequal(pars, c('mean', 'thr'))){
         model = 'ordinal'
     }else{
@@ -187,6 +197,7 @@ aggregate.data = function(data, resp.stim.vars, K){
 fix.model.links = function(model, fixed, random, links, K){
     model_pars = list(sdt = c('delta', 'gamma'),
                       metad = c('delta', 'gamma'),
+                      uvmetad = c('delta', 'gamma', 'theta'),
                       uvsdt = c('delta', 'gamma', 'theta'),
                       ordinal = c('eta', 'gamma'))
                       ## uvordinal = c('eta', 'gamma', 'theta'))
@@ -227,6 +238,7 @@ par.size = function(par, model, links, K){
         s = list(sdt = c(delta = 1),
                  uvsdt = c(delta = 1, theta = 1),
                  metad = c(delta = 2),
+                 uvmetad = c(delta = 2, theta = 1),
                  ordinal = c(eta = 1),
                  uvordinal = c(eta = 1, theta = 1))[[model]][par]
         s = rep(s, 2)

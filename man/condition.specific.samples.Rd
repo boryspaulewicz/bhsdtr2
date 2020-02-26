@@ -8,7 +8,7 @@ condition.specific.samples(
   m,
   par,
   group = NULL,
-  fit = c("stan", "ml"),
+  fit = NULL,
   include.vars = NULL
 )
 }
