@@ -5,11 +5,13 @@ output:
     variant: markdown_github
 ---
 ```{r init, include=F, echo=F}
-knitr::opts_chunk$set(dev = 'svg', comment = NA, dpi = 250, fig.path='Figs/',fig.width=10, fig.height=8,
+knitr::opts_chunk$set(dev = 'svg', comment = NA, dpi = 280, fig.path='Figs/',fig.width=15, fig.height=15,
                       echo=TRUE, warning = FALSE, error = FALSE, message = FALSE,
                       cache.path = '~/windows/temp/bhsdtr2intro/', cache=T)
 ```
 
+The functions in the bhsdtr2 package are not documented yet.
+        
 ## The bhsdtr2 package overview
         
 The bhsdtr2 (short for Bayesian Hierarchical Signal Detection Theory
