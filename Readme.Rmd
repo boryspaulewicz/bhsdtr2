@@ -5,7 +5,7 @@ output:
     variant: markdown_github
 ---
 ```{r init, include=F, echo=F}
-knitr::opts_chunk$set(dev = 'svg', comment = NA, fig.path='Figs/',fig.width=8, fig.height=6,
+knitr::opts_chunk$set(dev = 'svg', comment = NA, dpi = 250, fig.path='Figs/',fig.width=10, fig.height=8,
                       echo=TRUE, warning = FALSE, error = FALSE, message = FALSE,
                       cache.path = '~/windows/temp/bhsdtr2intro/', cache=T)
 ```
@@ -230,7 +230,7 @@ plot(m.stan, vs = c('duration', 'order'), verbose = F)
 as well as in the ROC plots:
 
 ```{r}     
-plot(m.stan, vs = c('duration', 'order'), type = 'roc', verbose = F)
+plot(m.stan, vs = c('duration', 'order'), type = 'roc',  verbose = F)
 ```
 
 If you know what you are doing, you can use the stan posterior samples
