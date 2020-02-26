@@ -40,8 +40,8 @@ The bhsdtr2 package, together will all of its dependencies, can be installed dir
 devtools::install_git('git://github.com/boryspaulewicz/bhsdtr2')
 ```
 
-Usage example
--------------
+Usage examples
+--------------
 
 The package contains the gabor dataset
 
