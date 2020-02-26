@@ -4,8 +4,9 @@ output:
   md_document:
     variant: markdown_github
 ---
-```{r init, include=F, echo=F}
-knitr::opts_chunk$set(dev = 'svg', comment = NA, dpi = 280, fig.path='Figs/',fig.width=15, fig.height=15,
+```{r init, echo=FALSE}
+knitr::opts_chunk$set(dev = 'svg', comment = NA, dpi = 280, fig.path='Figs/',fig.width=15, fig.height=15, tidy = T, 
+                      tidy.opts = list(width.cutoff = 60),
                       echo=TRUE, warning = FALSE, error = FALSE, message = FALSE,
                       cache.path = '~/windows/temp/bhsdtr2intro/', cache=T)
 ```
@@ -69,12 +70,10 @@ The main advantage of the bhsdtr2 (and bhsdtr) package over other
 available methods of fitting ordinal models with ordered thresholds
 has to do with the order-preserving link functions which are used for
 the thresholds (criteria). To my knowledge, at present bhsdtr and
-bhsdtr2 are the only correct implementations of hierarchical ordinal
-models with ordered thresholds, including hierarchical SDT-like
+bhsdtr2 are the only correct implementations of hierarchical SDT-like
 models, because both packages allow for variability in d' (or latent
 mean) and in individual thresholds, while respecting the assumptions
-of non-negativity (the d' parameter in SDT-like models) and order
-(thresholds) (see the
+of non-negativity (d') and order (thresholds) (see the
 [preprint](http://dx.doi.org/10.23668/psycharchives.2725) for more
 details).
 
@@ -112,7 +111,7 @@ The package contains the gabor dataset
 library(bhsdtr2)
 library(rstan)
 
-head(gabor)
+head(gabor[,-1])
 ```
 
 To fit a hierarchical SDT model with multiple thresholds to this data
@@ -225,13 +224,13 @@ print(m.stan$stanfit, probs = c(.025, .975), pars = c('delta_fixed', 'gamma_fixe
 and you will see the predictive intervals in the response distribution
 plots:
 
-```{r}     
+```{r fig.width=10, fig.height=10}     
 plot(m.stan, vs = c('duration', 'order'), verbose = F)
 ```
      
 as well as in the ROC plots:
 
-```{r}     
+```{r fig.width=10,fig.height=10}     
 plot(m.stan, vs = c('duration', 'order'), type = 'roc',  verbose = F)
 ```
 
