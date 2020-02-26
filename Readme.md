@@ -8,8 +8,9 @@ The bhsdtr2 (short for Bayesian Hierarchical Signal Detection Theory with Rating
 For example, a hierarchical SDT model can be fitted simply by writing:
 
 ``` r
-m = bhsdtr(c(dprim ~ duration * order + (duration | id), thr ~ 
-    order + (1 | id)), r ~ stim, gabor)
+m = bhsdtr(c(dprim ~ duration * order + (duration | id), thr ~ order + (1 | id)),
+           r ~ stim,
+           gabor)
 ```
 
 The package uses the state-of-the-art platform [Stan](http://mc-stan.org/) for sampling from posterior distributions. The models can accommodate binary responses as well as ordered polytomous responses and an arbitrary number of nested or crossed random grouping factors. The parameters (e.g., d', decision criterion, thresholds, the ratio of standard deviations, latent mean) can be regressed on additional predictors within the same model via intermediate unconstrained parameters. The models can be also be extended by modifying automatically generated human-readable Stan code.
@@ -21,7 +22,7 @@ Ordinal models are *non-linear*. An immediate consequence of non-linearity is th
 
 In the bhsdtr2 package, ordinal models are supplemented with a hierarchical linear regression structure (normally distributed correlated random effects) thanks to a novel parametrization described in [this preprint](http://dx.doi.org/10.23668/psycharchives.2725) which was recently accepted for publication in Behavior Research Methods, and - more concisely - in the package documentation.
 
-The main advantage of the bhsdtr2 (and bhsdtr) package over other available methods of fitting ordinal models with ordered thresholds has to do with the order-preserving link functions which are used for the thresholds (criteria). To my knowledge, at present bhsdtr and bhsdtr2 are the only correct implementations of hierarchical ordinal models with ordered thresholds, including hierarchical SDT-like models, because both packages allow for variability in d' (or latent mean) and in individual thresholds, while respecting the assumptions of non-negativity (the d' parameter in SDT-like models) and order (thresholds) (see the [preprint](http://dx.doi.org/10.23668/psycharchives.2725) for more details).
+The main advantage of the bhsdtr2 (and bhsdtr) package over other available methods of fitting ordinal models with ordered thresholds has to do with the order-preserving link functions which are used for the thresholds (criteria). To my knowledge, at present bhsdtr and bhsdtr2 are the only correct implementations of hierarchical SDT-like models, because both packages allow for variability in d' (or latent mean) and in individual thresholds, while respecting the assumptions of non-negativity (d') and order (thresholds) (see the [preprint](http://dx.doi.org/10.23668/psycharchives.2725) for more details).
 
 Without the order-preserving link functions, it is impossible to correctly model the effects in *individual* thresholds, including the possibly ubiquitous individual differences (i.e., participant effects) in the *pattern* of threshold placement. Note that the preprint covers only the SDT models and only one order-preserving link function, whereas there are now five such functions (softmax, log\_distance, log\_ratio, twoparamter and parsimonious) to choose from in bhsdtr and bhsdtr2.
 
@@ -36,7 +37,7 @@ Installing the package
 The bhsdtr2 package, together will all of its dependencies, can be installed directly from this github repository using the devtools package:
 
 ``` r
-devtools::install_git("git://github.com/boryspaulewicz/bhsdtr2")
+devtools::install_git('git://github.com/boryspaulewicz/bhsdtr2')
 ```
 
 Usage example
@@ -48,7 +49,7 @@ The package contains the gabor dataset
 library(bhsdtr2)
 library(rstan)
 
-head(gabor[, -1])
+head(gabor[,-1])
 ```
 
       duration trial acc id           order age gender rating stim
@@ -68,8 +69,9 @@ gabor$r = combined.response(gabor$stim, gabor$rating, gabor$acc)
 The combined responses are automatically aggregated to make the sampling more efficient. Here is how you can fit the hierarchical EV Normal SDT model in which we assume that d' depends on duration (a within-subject variable) and order (a between-subject variable), the effect of duration may vary between the participants and the thresholds, which may also vary between the participants, depend only on order:
 
 ``` r
-m = bhsdtr(c(dprim ~ duration * order + (duration | id), thr ~ 
-    order + (1 | id)), r ~ stim, gabor)
+m = bhsdtr(c(dprim ~ duration * order + (duration | id), thr ~ order + (1 | id)),
+           r ~ stim,
+           gabor)
 ```
 
 On my laptop, this model was fitted in less than half a minute, because by default, bhsdtr2 uses maximum likelihood optimization. If you want posterior samples you just have to add the fit\_method = 'stan' argument (and any additional arguments you may want to pass to the stan function, although the defaults seem to be working quite well most of the time).
@@ -77,7 +79,7 @@ On my laptop, this model was fitted in less than half a minute, because by defau
 Even though in bhsdtr2 the d' (thresholds) parameter is internally represented by the isomorphic delta (gamma) parameter (more on that later) and the two parameters are non-linearly related, you can easily obtain condition-specific ML point estimates of d', the threshold parameters, or the standard deviation ratios using the samples function:
 
 ``` r
-samples(m, "dprim")
+samples(m, 'dprim')
 ```
 
     samples: 1, estimates rounded to 2 decimal places
@@ -92,23 +94,27 @@ If this model was fitted using stan you would also see a similar summary table, 
 All you have to do to fit the UV version of this model is introduce the model formula for the sdratio parameter. Here, for example, we assume that the ratio of the standard deviations may vary between the participants:
 
 ``` r
-m = bhsdtr(c(dprim ~ duration * order + (duration | id), thr ~ 
-    order + (1 | id), sdratio ~ 1 + (1 | id)), r ~ stim, gabor)
+m = bhsdtr(c(dprim ~ duration * order + (duration | id), thr ~ order + (1 | id),
+             sdratio ~ 1 + (1 | id)),
+           r ~ stim,
+           gabor)
 ```
 
 To fit the hierarchical meta-d' model you just have to replace the dprim parameter with the metad parameter:
 
 ``` r
-m = bhsdtr(c(metad ~ duration * order + (duration | id), thr ~ 
-    order + (1 | id)), r ~ stim, gabor)
+m = bhsdtr(c(metad ~ duration * order + (duration | id), thr ~ order + (1 | id)),
+           r ~ stim,
+           gabor)
 ```
 
 If you want, you can fit the hierarchical parsimonious SDT model (here UV):
 
 ``` r
-m = bhsdtr(c(dprim ~ duration * order + (duration | id), thr ~ 
-    order + (1 | id), sdratio ~ 1 + (1 | id)), r ~ stim, links = list(gamma = "parsimonious"), 
-    gabor, )
+m = bhsdtr(c(dprim ~ duration * order + (duration | id), thr ~ order + (1 | id),
+             sdratio ~ 1 + (1 | id)),
+           r ~ stim, links = list(gamma = 'parsimonious'),
+           gabor,)
 ```
 
 etc. If you want to see if the model fits you can just write:
@@ -122,15 +128,15 @@ plot(m)
 By the way, the main reason why this model does not fit very well (at least in my opinion) is that the thresholds are rather constrained when the parsimonious link function is used. If you use stan:
 
 ``` r
-m.stan = bhsdtr(c(dprim ~ duration * order + (duration | id), 
-    thr ~ order + (1 | id)), r ~ stim, gabor, fit_method = "stan")
+m.stan = bhsdtr(c(dprim ~ duration * order + (duration | id), thr ~ order + (1 | id)),
+                r ~ stim,
+                gabor, fit_method = 'stan')
 ```
 
 you will be able to enjoy the stan summary table:
 
 ``` r
-print(m.stan$stanfit, probs = c(0.025, 0.975), pars = c("delta_fixed", 
-    "gamma_fixed"))
+print(m.stan$stanfit, probs = c(.025, .975), pars = c('delta_fixed', 'gamma_fixed'))
 ```
 
     Inference for Stan model: f1227ab9a3feb55de2e21a3383b8b94d.
@@ -165,7 +171,7 @@ print(m.stan$stanfit, probs = c(0.025, 0.975), pars = c("delta_fixed",
 and you will see the predictive intervals in the response distribution plots:
 
 ``` r
-plot(m.stan, vs = c("duration", "order"), verbose = F)
+plot(m.stan, vs = c('duration', 'order'), verbose = F)
 ```
 
 ![](Figs/unnamed-chunk-14-1.svg)
@@ -173,7 +179,7 @@ plot(m.stan, vs = c("duration", "order"), verbose = F)
 as well as in the ROC plots:
 
 ``` r
-plot(m.stan, vs = c("duration", "order"), type = "roc", verbose = F)
+plot(m.stan, vs = c('duration', 'order'), type = 'roc',  verbose = F)
 ```
 
 ![](Figs/unnamed-chunk-15-1.svg)
@@ -181,7 +187,7 @@ plot(m.stan, vs = c("duration", "order"), type = "roc", verbose = F)
 If you know what you are doing, you can use the stan posterior samples directly, but if the very idea of a link function makes you feel uneasy, most of the time you can forget about the delta, gamma, theta, and eta parameters and rely on the samples function:
 
 ``` r
-(smp = samples(m.stan, "thr"))
+(smp = samples(m.stan, 'thr'))
 ```
 
     samples: 21000, estimates rounded to 2 decimal places
@@ -200,8 +206,7 @@ dim(smp)
 which means we have 21000 samples, 7 thresholds, and 2 conditions. Does the order affect the thresholds? We can compare the conditions separately for each threshold by apply-ing the quantile function to the sub-matrices indexed by the second (threshold number) dimension.
 
 ``` r
-round(t(apply(smp, 2, function(x) quantile(x[, 1] - x[, 2], c(0.025, 
-    0.975)))), 2)
+round(t(apply(smp, 2, function(x)quantile(x[,1] - x[,2], c(.025, .975)))), 2)
 ```
 
            2.5% 97.5%
@@ -216,8 +221,8 @@ round(t(apply(smp, 2, function(x) quantile(x[, 1] - x[, 2], c(0.025,
 Judging by the 95% credible intervals, there seems to be no evidence of the order affecting the thresholds. You can make use of the fact the names of the columns of these sub-matrices represent unique conditions (in general, they represent unique combinations of variables which were introduced in the model formula for the given parameter):
 
 ``` r
-round(t(apply(smp, 2, function(x) quantile(x[, "DECISION-RATING"] - 
-    x[, "RATING-DECISION"], c(0.025, 0.975)))), 2)
+round(t(apply(smp, 2, function(x)quantile(x[,'DECISION-RATING'] - x[,'RATING-DECISION'],
+                                          c(.025, .975)))), 2)
 ```
 
            2.5% 97.5%

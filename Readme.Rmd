@@ -5,8 +5,7 @@ output:
     variant: markdown_github
 ---
 ```{r init, echo=FALSE}
-knitr::opts_chunk$set(dev = 'svg', comment = NA, dpi = 280, fig.path='Figs/',fig.width=15, fig.height=15, tidy = T, 
-                      tidy.opts = list(width.cutoff = 60),
+knitr::opts_chunk$set(dev = 'svg', comment = NA, dpi = 280, fig.path='Figs/',fig.width=15, fig.height=15,
                       echo=TRUE, warning = FALSE, error = FALSE, message = FALSE,
                       cache.path = '~/windows/temp/bhsdtr2intro/', cache=T)
 ```
