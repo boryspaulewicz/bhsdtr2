@@ -3,7 +3,7 @@ Title: Bayesian (non-)hierarchical ordinal models with ordered thresholds
 Version: 0.0.0.9000
 Imports: plyr, ggplot2, StanHeaders, rstan, stats, coda
 Authors@R: person("Boryslaw", "Paulewicz", email = "borys.paulewicz@gmail.com", role = c("aut", "cre"))
-Description: Fitting (non-)hierarchical bayesian ordinal models with ordered thresholds, including
+Description: A package for fitting (non-)hierarchical bayesian ordinal models with ordered thresholds, including
     Normal Signal Detection Theory (SDT), Unequal Variance Normal SDT, meta-d', and general ordinal models.
     The parameters (mean, d', thresholds, sd ratio) are derived from unconstrained parameters via link
     functions (including the order-preserving link functions for the thresholds), allowing the original
