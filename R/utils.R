@@ -13,14 +13,9 @@ fix.index.gaps = function(v, description = 'unknown', fix_gaps = F, nvalues = NU
         v = as.numeric(v)
     }
     if(fix_gaps){
-        ## Test if there are gaps between min(v) and max(v) and fix it if
-        ## there are any
         res = sort(unique(v))
-        if(!all(res[-1] - res[-length(res)] == 1)){
-            warning(sprintf('There are gaps between min(v) and max(v) where v is %s, data and model\
- indices for this variable may not match.', description))
+        if(!all((res[-1] - res[-length(res)]) == 1))
             v = as.numeric(as.factor(as.character(v)))
-        }
     }
     ## Ensure that min(v) == 1
     v - min(v, na.rm = T) + 1

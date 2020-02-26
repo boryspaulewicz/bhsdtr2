@@ -5,14 +5,13 @@
 \title{main interface}
 \usage{
 bhsdtr(
-  model.formulae,
-  response.formula,
+  model_formulae,
+  response_formula,
   data,
   links = list(gamma = "log_distance"),
-  fit = "ml",
+  fit_method = "ml",
   thresholds_scale = 2,
-  iter = 20000,
-  stanargs = NULL
+  ...
 )
 }
 \description{

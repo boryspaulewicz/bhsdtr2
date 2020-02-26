@@ -4,7 +4,7 @@
 \alias{samples}
 \title{get posterior samples or ml point estimates}
 \usage{
-samples(m, par, group = NULL)
+samples(m, par, group = NULL, ...)
 }
 \description{
 get posterior samples or ml point estimates

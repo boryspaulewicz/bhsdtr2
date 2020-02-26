@@ -2,9 +2,12 @@
 
 S3method(plot,bhsdtr_model)
 S3method(print,bhsdtr_model)
+S3method(print,bhsdtr_samples)
+S3method(summary,bhsdtr_samples)
 export(bhsdtr)
 export(combined.response)
 export(condition.specific.samples)
+export(fit)
 export(linkfun)
 export(samples)
 export(unbiased)

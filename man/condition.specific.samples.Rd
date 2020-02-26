@@ -4,7 +4,13 @@
 \alias{condition.specific.samples}
 \title{get posterior samples or ml point estimates per condition}
 \usage{
-condition.specific.samples(m, par, group = NULL)
+condition.specific.samples(
+  m,
+  par,
+  group = NULL,
+  fit = c("stan", "ml"),
+  include.vars = NULL
+)
 }
 \description{
 get posterior samples or ml point estimates per condition

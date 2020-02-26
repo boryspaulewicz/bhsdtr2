@@ -44,15 +44,14 @@ parse.link = function(lines, par, link){
 
 parse.random = function(lines, random, par_types){
     parsed = NULL
-    for(part in lines){
-        ## If this is part of the random effects' specification ...
+    for(part in lines){## If this is part of the random effects' specification ...
         if(rmatch(sprintf('//random-(%s)', paste(par_types, collapse = '|')), part)){
             ## ... and there are random effects in the model ...
             if(length(random) > 0)
                 for(par in names(random)){
                     for(g in 1:length(random[[par]])){
                         if(!is.null(random[[par]][[g]]) & rmatch(sprintf('//random-%s', par), part))
-                                parsed[length(parsed) + 1] = gsub('%', g, part)
+                            parsed[length(parsed) + 1] = gsub('%', g, part)
                     }
                 }
         }else{
@@ -60,7 +59,7 @@ parse.random = function(lines, random, par_types){
             parsed = c(parsed, part)
         }
         ## if there are no random effects in the model and the
-        ## template part is part of the random effects structure then ignore this part
+        ## template part defines part of the random effects structure then ignore this part
     }
     parsed
 }

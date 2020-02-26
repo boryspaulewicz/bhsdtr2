@@ -1,9 +1,32 @@
 library(bhsdtr2)
 library(rstan)
 
-# fs = dir('~/cs/code/r/bhsdtr2/R/', '*R')
-# for(f in fs)
-#     source(sprintf('~/cs/code/r/bhsdtr2/R/%s', f))
+gabor$r = with(gabor, combined.response(stim, rating, acc))
+
+(m1 = bhsdtr(c(dprim ~ 1 + (1 | id), thr ~ 1 + (1 | id)), r ~ stim,
+             gabor[(gabor$order == 'DECISION-RATING') & (gabor$duration == '32 ms'),]))
+
+(res = samples(m1, 'dprim'))
+plot(m1)
+
+(m2 = bhsdtr(c(dprim ~ 1 + (1 | id), thr ~ 1 + (1 | id)), r ~ stim,
+             gabor[(gabor$order == 'DECISION-RATING') & (gabor$duration == '32 ms'),],
+             fit_method = 'stan'))
+(res = samples(m2, 'dprim'))
+(res = samples(m2, 'thr'))
+plot(m2)
+
+(m3 = bhsdtr(c(dprim ~ duration + (1 | id), thr ~ 1 + (1 | id)), r ~ stim,
+             gabor[(gabor$order == 'DECISION-RATING'),],
+             fit_method = 'stan'))
+res1 = samples(m3, 'dprim')
+
+(m4 = bhsdtr(c(mean ~ 1, thr ~ stim + (stim | id)), r ~ 1,
+             gabor[(gabor$order == 'DECISION-RATING') & (gabor$duration == '32 ms'),],
+             fit_method = 'stan'))
+samples(m4, 'thr')
+summary((x = samples(m4, 'thr')), digits = 3)
+plot(m4)
 
 sim_sdt = function(n = 1, dprim = 1.5, criteria = c(-2.1, -1.4, -.7, 0, .7, 1.4, 2.1), sd_ratio = 1){
     which_bin = function(x, thr)min(which(x <= c(-Inf, thr, Inf)) - 1)
@@ -20,11 +43,8 @@ sim_sdt = function(n = 1, dprim = 1.5, criteria = c(-2.1, -1.4, -.7, 0, .7, 1.4,
 
 ######################################################################
 
-gabor$r = with(gabor, combined.response(stim, rating, acc))
 
-(m = bhsdtr(c(dprim ~ 1 + (1 | id), thr ~ 1 + (1 | id)), r ~ stim,
-            gabor[(gabor$order == 'DECISION-RATING') & (gabor$duration == '32 ms'),]))
-plot(m)
+samples(m, 'dprim')
 
 ## Testy
 fit = 'ml'
@@ -68,7 +88,7 @@ test_fixed_models(models = 'uvsdt')
 test_fixed_models(models = 'metad', links = 'parsimonious')
 test_fixed_models(models = 'metad')
 
-(m1 = bhsdtr(c(dprim ~ -1 + duration:order + (-1 + duration | id), thr ~ order + (order | id)),
+(m1 = bhsdtr(c(dprim ~ duration * order + (duration | id), thr ~ order + (order | id)),
              r ~ stim,
              gabor))
 plot(m1)

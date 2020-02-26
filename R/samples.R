@@ -3,7 +3,7 @@
 ##' get posterior samples or ml point estimates
 ##'
 ##' @export
-samples = function(m, par, group = NULL){
+samples = function(m, par, group = NULL, ...){
     par2 = par.to.linked(par)
     invlink = F
     ## e.g., if par = 'dprim'
@@ -15,23 +15,18 @@ samples = function(m, par, group = NULL){
         ## no conversion (e.g., par = 'delta')
         fun = function(x, ...)x
     }
-    res = condition.specific.samples(m, par2, group)
-    if(is.null(group)){
-        ## e.g., gamma_size_ > gamma_size when link = 'parsimonious' or 'twoparameter'
-        res_ = array(dim = c(dim(res)[1], m$sdata[[sprintf('%s_size_', par2)]], dim(res)[3]))
-        ## i is condition number
-        for(i in 1:(dim(res)[3]))
-            res_[,,i] = fun(matrix(res[,,i], nrow = dim(res)[1]),
-                           m$sdata$K, m$sdata$thresholds_scale)
-    }else{
-        res_ = array(dim = c(dim(res)[1:2], m$sdata[[sprintf('%s_size_', par2)]], dim(res)[4]))
-        for(g in 1:(dim(res)[2]))
-            for(i in 1:(dim(res)[4]))
-                res_[,g,,i] = fun(matrix(res[,g,,i], nrow = dim(res)[1]),
-                                  m$sdata$K, m$sdata$thresholds_scale)
-    }
-    dimnames(res_) = dimnames(res)
-    res_
+    result = condition.specific.samples(m, par2, group, ...)
+    ## par2_size because e.g., gamma_size_ > gamma_size when link = 'parsimonious' or 'twoparameter'
+    result_ = array(dim = c(dim(result)[1], m$sdata[[sprintf('%s_size_', par2)]], dim(result)[3]))
+    ## i is condition number
+    for(i in 1:(dim(result)[3]))
+        result_[,,i] = fun(matrix(result[,,i], nrow = dim(result)[1]),
+                        m$sdata$K, m$sdata$thresholds_scale)
+    dimnames(result_) = dimnames(result)
+    dimnames(result_)[2] = list(paste(par, 1:dim(result)[2], sep = '.'))
+    class(result_) = c('bhsdtr_samples', class(result_))
+    attr(result_, 'data') = attr(result, 'data')
+    result_
 }
 
 ## e.g., dprim -> delta

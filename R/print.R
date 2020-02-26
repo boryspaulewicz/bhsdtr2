@@ -4,32 +4,53 @@
 ##'
 ##' @export
 print.bhsdtr_model = function(x, ...){
-    cat('bhsdtr model object\n')
-    cat(sprintf('model type: %s\n', x$model))
-    cat(sprintf('K: %d\n', x$K))
+    cat(sprintf('bhsdtr model of type %s, number of response categories K: %d\n', x$model, x$sdata$K))
     cat('link functions:\n')
+    str = NULL
     for(par in sort(names(x$links)))
-        cat(sprintf(' %s: %s\n', par, x$links[[par]]))
-    for(v in sort(names(x$sdata)[grep('[a-z]+_size', names(x$sdata))]))
-        cat(sprintf('%s: %d\n', v, x$sdata[[v]]))
+        str = c(str, sprintf(' %s: %s', par, x$links[[par]]))
+    cat(paste(str, collapse = ', '))
+    cat('\n')
+    ## for(v in sort(names(x$sdata)[grep('[a-z]+_size', names(x$sdata))]))
+    ##     cat(sprintf('%s: %d\n', v, x$sdata[[v]]))
     cat('fixed effects:\n')
+    str = NULL
     for(par in sort(names(x$fixed)))
-        cat(sprintf(' %s %s\n', par, paste(as.character(x$fixed[[par]]), collapse = ' ')))
+        str = c(str, sprintf(' %s %s', par, paste(as.character(x$fixed[[par]]), collapse = ' ')))
+    cat(paste(str, collapse = ', '))
+    cat('\n')
     cat('random effects:\n')
+    str = NULL
     for(par in sort(names(x$random)))
         for(i in 1:length(x$random[[par]]))
-            cat(sprintf(' %s %s | %s\n', par, paste(as.character(x$random[[par]][[i]]$model.formula), collapse = ' '),
+            str = c(str, sprintf(' %s %s | %s', par, paste(as.character(x$random[[par]][[i]]$model.formula), collapse = ' '),
                         x$random[[par]][[i]]$group.name))
-    cat(sprintf('variables: %s\n', paste(sort(names(x$adata$data)), collapse = ' ')))
-    cat(sprintf('original data size: %d\n', x$data_size))
-    cat(sprintf('aggregated data size: %d\n', nrow(x$adata$data)))
+    cat(paste(str, collapse = ', '))
+    cat('\n')
+    cat(sprintf('variables: %s, ', paste(sort(names(x$adata$data)), collapse = ' ')))
+    cat(sprintf('data size original: %d, aggregated: %d\n', x$data_size, nrow(x$adata$data)))
+    str = NULL
     if(!is.null(x$mlfit))
-        cat('mlfit\n')
-    if(!is.null(x$stanfit)){
-        cat('preparing stan summary statistics...\n')
-        print(x$stanfit, probs = c(.025, .957),
-              pars = x$pars[-c(grep('counts_new', x$pars), grep('_random_', x$pars), grep('corr_', x$pars))])
-    }
+        str = c(str, 'ml')
+    if(!is.null(x$stanfit))
+        str = c(str, 'stan')
+    if(!is.null(str))
+        cat(sprintf('fitted using method: %s\n', paste(str, collapse = ', ')))
     invisible(x)
 }
-## Ok
+
+##' print bhsdtr condition-specific samples or ml point estimates
+##'
+##' @export
+print.bhsdtr_samples = function(x, digits = 2, probs = c(.025, .975), ...){
+    cat(sprintf('samples: %d, estimates rounded to %d decimal places\n', dim(x)[1], digits))
+        tbl = matrix(x[1,,], nrow = dim(x)[2], ncol = dim(x)[3])
+        for(d in 1:(dim(x)[2]))
+            tbl[d,] = apply(x[,d,, drop = F], 3, mean)
+        tbl = as.data.frame(formatC(round(tbl, digits), format = 'f', digits = digits))
+        rownames(tbl) = dimnames(x)[[2]]
+        names(tbl) = dimnames(x)[[3]]
+        print(as.data.frame(t(tbl)))
+## }
+    invisible(x)
+}

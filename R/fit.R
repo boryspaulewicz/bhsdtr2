@@ -1,4 +1,4 @@
-##' ## -*- coding: utf-8 -*-
+## -*- coding: utf-8 -*-
 
 ##' fit a bhsdtr model using ml or stan
 ##' 
@@ -35,7 +35,7 @@ fit = function(m, method = 'ml',
         if(stan_optimizations){
             options(mc.cores = parallel::detectCores())
             rstan_options(auto_write = TRUE)
-            Sys.setenv(LOCAL_CPPFLAGS = '-march=native')
+            ## Sys.setenv(LOCAL_CPPFLAGS = '-march=native')
         }
         stanargs$model_code = m$code
         stanargs$data = m$sdata
