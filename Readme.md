@@ -184,7 +184,7 @@ plot(m.stan, vs = c('duration', 'order'), type = 'roc',  verbose = F)
 
 ![](Figs/unnamed-chunk-15-1.svg)
 
-If you know what you are doing, you can use the stan posterior samples directly, but if the very idea of a link function makes you feel uneasy, most of the time you can forget about the delta, gamma, theta, and eta parameters and rely on the samples function:
+If you know what you are doing, you can use the stan posterior samples directly, but if the very idea of a link function makes you feel uneasy, note that most of the time you can forget about the delta, gamma, theta, and eta parameters and rely on the samples function:
 
 ``` r
 (smp = samples(m.stan, 'thr'))
