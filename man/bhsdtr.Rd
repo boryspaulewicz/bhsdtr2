@@ -2,7 +2,7 @@
 % Please edit documentation in R/bhsdtr.R
 \name{bhsdtr}
 \alias{bhsdtr}
-\title{main interface}
+\title{Creating and fitting ordinal models with ordered thresholds}
 \usage{
 bhsdtr(
   model_formulae,
@@ -15,21 +15,82 @@ bhsdtr(
 )
 }
 \arguments{
-\item{model_formulae}{a vector of lmer-style model formulae for
-the parameters of the model}
+\item{model_formulae}{a vector of two or more lmer-style model
+formulae for the parameters of the model. Every such vector
+must contain a model formula for the thr (=thresholds)
+parameter, and a model formula for either the dprim, the
+metad, or the mean (general ordinal model) parameter. This
+vector may have three elements iff it also contains a formula
+for the sdratio (Unequal Variance models) parameter.}
 
 \item{response_formula}{a formula specifying the names of the
-response variable and the stimulus variable}
+response variable and the stimulus variable. If this is an
+SDT-like model this must be of the form resp ~ stim, where
+resp is the name of the combined response variable or the
+binary response variable, and stim is the name of the (binary)
+stimulus variable.}
 
-\item{links}{a list specyfing the link functions}
+\item{links}{a list specyfing the link functions, the default is
+list(gamma = 'log_distance'). This list will be filled with
+the default link function specifications for the remaining
+parameters if the link functions for the remaining parameters
+are not specified. Currently you can set gamma to
+'log_distance' (the default), 'log_ratio', 'twoparameter',
+'parsimonious', and 'softmax'. The log_distance and log_ratio
+link functions are described in the Readme file in the github
+repository, the parsimonious link function represents the
+thresholds using two parameters, the unconstrained main
+criterion and the logarithm of the scaling factor which is
+used to stretch the "unbiased" thresholds so that the
+distribution of responses fits. The softmax link function is
+described in the bhsdtr preprint. You can also choose between
+delta = 'log' (the default, which covers both the d' and the
+meta-d' parameters), and delta = 'identity' (i.e., no
+conversion between delta and d' or meta-d').}
 
-\item{fit_method}{either 'ml' or 'stan'}
+\item{fit_method}{a string which specifies how to fit the
+model. The default is 'ml' (quick maximum likelihood fit), but
+you can also choose 'stan', or anything else, if you do not
+want the model to be fitted right away.}
 
-\item{thresholds_scale}{thresholds scaling factor (see the bhsdtr preprint)}
+\item{thresholds_scale}{thresholds scaling factor for the softmax
+gamma link function (see the bhsdtr preprint).}
+
+\item{...}{arguments to be passed to the stan function.}
 }
 \value{
-a bhsdtr_model object
+a bhsdtr_model object, which is an S3 class object, so you
+    can easily access its insides. If it was fitted using the ml
+    (stan) method, the $mlfit ($stanfit) contains the result.
 }
 \description{
-main interface
+Creating and fitting ordinal models with ordered thresholds
+}
+\examples{
+\donttest{
+    gabor$r = combined.response(gabor$stim, gabor$rating, gabor$acc)
+    ## A hierarchical SDT model
+    m.ml = bhsdtr(c(dprim ~ duration * order + (duration | id), thr ~ order + (1 | id)),
+                  r ~ stim,
+                  gabor)
+    ## Posterior samples (here single samples = ML point estimates) of d' for every
+    ## unique combination of the predictors, here duration and order, because
+    ## dprim ~ duration * order.
+    samples(m.ml, 'dprim')
+    ## Thresholds
+    samples(m.ml, 'thr')
+    ## Fitting the model using stan
+    m.stan = bhsdtr(c(dprim ~ duration * order + (duration | id), thr ~ order + (1 | id)),
+                    r ~ stim,
+                    gabor, fit_method = 'stan')
+    (smp = samples(m.stan, 'thr'))
+    ## This is how you can access the stanfit object
+    print(m.stan$stanfit, probs = c(.025, .975), pars = c('delta_fixed', 'gamma_fixed'))
+    ## This is how you can see if the model fits. Here we specify the variables (duration
+    ## and order) to see only the duration x order panels.
+    plot(m.stan, vs = c('duration', 'order'), verbose = F)
+    ## A simple contrast calculated on the posterior threshold samples
+    round(t(apply(smp, 2, function(x)quantile(x[,'DECISION-RATING'] - x[,'RATING-DECISION'],
+                                              c(.025, .975)))), 2)
+}
 }

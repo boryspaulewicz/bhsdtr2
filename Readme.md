@@ -1,4 +1,4 @@
-The functions in the bhsdtr2 package are not documented yet.
+At present, only the most important functions in the bhsdtr2 package (i.e., bhsdtr and samples) are documented.
 
 The bhsdtr2 package overview
 ----------------------------

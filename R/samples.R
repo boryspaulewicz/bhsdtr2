@@ -1,7 +1,21 @@
 ## -*- coding: utf-8 -*-
 
-##' get posterior samples or ml point estimates
+##' Obtain posterior samples or ml estimates for unique combinations of predictor values
 ##'
+##' @param m a fitted bhsdtr model object
+##' @param par the name of a parameter. Can be either "dprim",
+##'     "metad", "thr", "sdratio", or "mean".
+##' @param group grouping variable number. For example, if this is the
+##'     d' formula: dprim ~ f1 * f2 + (f1 | id) + (f2 | id), then
+##'     group = 1 corresponds to the (f1 | id) part, and group = 2
+##'     corresponds to the (f2 | id) part. If this is not NULL then
+##'     you will get samples for every unique combination of
+##'     predictors and levels of this grouping factor.
+##' @return a S x D x C array, where S is the number of posterior
+##'     samples (= 1 for bhsdtr models fitted using ML), D is the
+##'     dimensionality of the parameter (dprim = 1, metad = 2, thr = K
+##'     - 1, mean = 1, sdratio = 1), and C is the number of unique
+##'     combinations of values of predictors for the given parameter.
 ##' @export
 samples = function(m, par, group = NULL, ...){
     par2 = par.to.linked(par)
