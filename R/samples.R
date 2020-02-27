@@ -11,7 +11,7 @@
 ##'     corresponds to the (f2 | id) part. If this is not NULL then
 ##'     you will get samples for every unique combination of
 ##'     predictors and levels of this grouping factor.
-##' @return a S x D x C array, where S is the number of posterior
+##' @return aa S x D x C array, where S is the number of posterior
 ##'     samples (= 1 for bhsdtr models fitted using ML), D is the
 ##'     dimensionality of the parameter (dprim = 1, metad = 2, thr = K
 ##'     - 1, mean = 1, sdratio = 1), and C is the number of unique
