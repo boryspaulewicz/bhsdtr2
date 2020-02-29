@@ -1,14 +1,14 @@
 ## -*- coding: utf-8 -*-
 
-##' get posterior samples or ml point estimates per condition
+##' get posterior samples or jmap point estimates per condition
 ##'
 ##' @export
-condition.specific.samples = function(m, par, group = NULL, fit = NULL, include.vars = NULL){
-    if(is.null(fit)){
+condition.specific.samples = function(m, par, group = NULL, method = NULL, include.vars = NULL){
+    if(is.null(method)){
         if(!is.null(m$stanfit)){
-            fit = 'stan'
-        }else if(!is.null(m$mlfit)){
-            fit = 'ml'
+            method = 'stan'
+        }else if(!is.null(m$jmapfit)){
+            method = 'jmap'
         }else{
             stop('This model was not fitted')
         }
@@ -31,21 +31,21 @@ condition.specific.samples = function(m, par, group = NULL, fit = NULL, include.
     ## colnames describe unique conditions
     condition.names = apply(data, 1, function(x)paste(x, collapse = ':'))
     X = model.matrix(fixed.formula, data)
-    if(('stan' %in% fit) & !is.null(m$stanfit)){
+    if(('stan' %in% method) & !is.null(m$stanfit)){
         samples.fixef = extract(m$stanfit)[[sprintf('%s_fixed', par)]]
-    }else if(('ml' %in% fit) & !is.null(m$mlfit)){
-        samples.fixef = array(m$mlfit$par[grep(sprintf('%s_fixed\\[', par), names(m$mlfit$par))],
+    }else if(('jmap' %in% method) & !is.null(m$jmapfit)){
+        samples.fixef = array(m$jmapfit$par[grep(sprintf('%s_fixed\\[', par), names(m$jmapfit$par))],
                    dim = c(1, m$sdata[[sprintf('%s_size', par)]], ncol(X)))
     }else{
-        stop(sprintf('This model was not fitted using method %s', paste(fit, collapse = ' nor ')))
+        stop(sprintf('This model was not fitted using method %s', paste(method, collapse = ' nor ')))
     }
     if(!is.null(group)){
         random.formula = m$random[[par]][[group]][['model.formula']]
         Z = model.matrix(random.formula, data)
-        if(('stan' %in% fit) & !is.null(m$stanfit)){
+        if(('stan' %in% method) & !is.null(m$stanfit)){
             samples.ranef = extract(m$stanfit)[[sprintf('%s_random_%d', par, group)]]
-        }else if('ml' %in% fit){
-            samples.ranef = array(m$mlfit$par[grep(sprintf('%s_random_%d\\[', par, group), names(m$mlfit$par))],
+        }else if('jmap' %in% method){
+            samples.ranef = array(m$jmapfit$par[grep(sprintf('%s_random_%d\\[', par, group), names(m$jmapfit$par))],
                        dim = c(1, m$random[[par]][[group]]$group.size, m$sdata[[sprintf('%s_size', par)]],
                                ncol(X)))
         }

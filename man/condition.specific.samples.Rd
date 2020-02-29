@@ -2,16 +2,16 @@
 % Please edit documentation in R/condition.specific.samples.R
 \name{condition.specific.samples}
 \alias{condition.specific.samples}
-\title{get posterior samples or ml point estimates per condition}
+\title{get posterior samples or jmap point estimates per condition}
 \usage{
 condition.specific.samples(
   m,
   par,
   group = NULL,
-  fit = NULL,
+  method = NULL,
   include.vars = NULL
 )
 }
 \description{
-get posterior samples or ml point estimates per condition
+get posterior samples or jmap point estimates per condition
 }

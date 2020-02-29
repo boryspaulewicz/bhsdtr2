@@ -12,18 +12,19 @@ linkfun = function(link){
     if(link == 'log_ratio')
         res = function(samples, K, ...){
             criteria = matrix(nrow = nrow(samples), ncol = K - 1)
-            criteria[, K / 2] = samples[, K / 2];
+            Kb2 = round(K / 2)
+            criteria[, Kb2] = samples[, Kb2];
             if(K > 2){
                 ## spread
-                criteria[, K / 2 + 1] = criteria[, K / 2] + exp(samples[, K / 2 + 1]);
+                criteria[, Kb2 + 1] = criteria[, Kb2] + exp(samples[, Kb2 + 1]);
                 ## symmetry
-                criteria[, K / 2 - 1] = criteria[, K / 2] - exp(samples[, K / 2 - 1]) * (criteria[, K / 2 + 1] - criteria[, K / 2]);
+                criteria[, Kb2 - 1] = criteria[, Kb2] - exp(samples[, Kb2 - 1]) * (criteria[, Kb2 + 1] - criteria[, Kb2]);
                 if(K > 4){
-                    for(k in 1:(K / 2 - 2)){
+                    for(k in 1:(Kb2 - 2)){
                         ## upper consistency
-                        criteria[, K / 2 + k + 1] = criteria[, K / 2 + k] + exp(samples[, K / 2 + k + 1]) * (criteria[, K / 2 + 1] - criteria[, K / 2]);
+                        criteria[, Kb2 + k + 1] = criteria[, Kb2 + k] + exp(samples[, Kb2 + k + 1]) * (criteria[, Kb2 + 1] - criteria[, Kb2]);
                         ## lower consistency
-                        criteria[, K / 2 - k - 1] = criteria[, K / 2 - k] - exp(samples[, K / 2 - k - 1]) * (criteria[, K / 2] - criteria[, K / 2 - 1]);
+                        criteria[, Kb2 - k - 1] = criteria[, Kb2 - k] - exp(samples[, Kb2 - k - 1]) * (criteria[, Kb2] - criteria[, Kb2 - 1]);
                     }
                 }
             }
@@ -32,11 +33,12 @@ linkfun = function(link){
     if(link == 'log_distance')
         res = function(samples, K, ...){
             criteria = matrix(nrow = nrow(samples), ncol = K - 1)
-            criteria[, K / 2] = samples[, K / 2];
+            Kb2 = round(K / 2)
+            criteria[, Kb2] = samples[, Kb2];
             if(K > 2){
-                for(k in 1:(K / 2 - 1)){
-                    criteria[, K / 2 + k] = criteria[, K / 2 + k - 1] + exp(samples[, K / 2 + k]);
-                    criteria[, K / 2 - k] = criteria[, K / 2 - k + 1] - exp(samples[, K / 2 - k]);
+                for(k in 1:(Kb2 - 1)){
+                    criteria[, Kb2 + k] = criteria[, Kb2 + k - 1] + exp(samples[, Kb2 + k]);
+                    criteria[, Kb2 - k] = criteria[, Kb2 - k + 1] - exp(samples[, Kb2 - k]);
                 }
             }
             criteria
@@ -52,11 +54,12 @@ linkfun = function(link){
     if(link == 'twoparameter')
         res = function(samples, K, ...){
             criteria = matrix(nrow = nrow(samples), ncol = K - 1)
-            criteria[, K / 2] = samples[, 1];
+            Kb2 = round(K / 2)
+            criteria[, round(K / 2)] = samples[, 1];
             if(K > 2){
-                for(k in 1:(K / 2 - 1)){
-                    criteria[, K / 2 + k] = criteria[, K / 2 + k - 1] + exp(samples[, 2]);
-                    criteria[, K / 2 - k] = criteria[, K / 2 - k + 1] - exp(samples[, 2]);
+                for(k in 1:(Kb2 - 1)){
+                    criteria[, Kb2 + k] = criteria[, Kb2 + k - 1] + exp(samples[, 2]);
+                    criteria[, Kb2 - k] = criteria[, Kb2 - k + 1] - exp(samples[, 2]);
                 }
             }
             criteria

@@ -9,7 +9,7 @@ bhsdtr(
   response_formula,
   data,
   links = list(gamma = "log_distance"),
-  fit_method = "ml",
+  method = "jmap",
   thresholds_scale = 2,
   ...
 )
@@ -48,10 +48,12 @@ delta = 'log' (the default, which covers both the d' and the
 meta-d' parameters), and delta = 'identity' (i.e., no
 conversion between delta and d' or meta-d').}
 
-\item{fit_method}{a string which specifies how to fit the
-model. The default is 'ml' (quick maximum likelihood fit), but
-you can also choose 'stan', or anything else, if you do not
-want the model to be fitted right away.}
+\item{method}{a string which specifies how to fit the
+model. The default is 'jmap', which results in an attempt to
+quickly maximize the joint posterior by using the optimizing
+function, but you can also choose 'stan', or, if you do not
+want the model to be fitted right away, you can use anything
+else.}
 
 \item{thresholds_scale}{thresholds scaling factor for the softmax
 gamma link function (see the bhsdtr preprint).}
@@ -60,8 +62,8 @@ gamma link function (see the bhsdtr preprint).}
 }
 \value{
 a bhsdtr_model object, which is an S3 class object, so you
-    can easily access its insides. If it was fitted using the ml
-    (stan) method, the $mlfit ($stanfit) contains the result.
+    can easily access its insides. If it was fitted using the jmap
+    (stan) method, $jmapfit ($stanfit) contains the result.
 }
 \description{
 Creating and fitting ordinal models with ordered thresholds
@@ -70,25 +72,32 @@ Creating and fitting ordinal models with ordered thresholds
 \donttest{
     gabor$r = combined.response(gabor$stim, gabor$rating, gabor$acc)
     ## A hierarchical SDT model
-    m.ml = bhsdtr(c(dprim ~ duration * order + (duration | id), thr ~ order + (1 | id)),
+    m.jmap = bhsdtr(c(dprim ~ duration * order + (duration | id), thr ~ order + (1 | id)),
                   r ~ stim,
                   gabor)
-    ## Posterior samples (here single samples = ML point estimates) of d' for every
-    ## unique combination of the predictors, here duration and order, because
+
+    ## Posterior samples (here single samples = maximum joint
+    ## posterior point estimates) of d' for every unique combination
+    ## of the predictors, here duration and order, because
     ## dprim ~ duration * order.
-    samples(m.ml, 'dprim')
+    samples(m.jmap, 'dprim')
+
     ## Thresholds
-    samples(m.ml, 'thr')
+    samples(m.jmap, 'thr')
+
     ## Fitting the model using stan
     m.stan = bhsdtr(c(dprim ~ duration * order + (duration | id), thr ~ order + (1 | id)),
                     r ~ stim,
-                    gabor, fit_method = 'stan')
+                    gabor, method = 'stan')
     (smp = samples(m.stan, 'thr'))
+
     ## This is how you can access the stanfit object
     print(m.stan$stanfit, probs = c(.025, .975), pars = c('delta_fixed', 'gamma_fixed'))
+
     ## This is how you can see if the model fits. Here we specify the variables (duration
     ## and order) to see only the duration x order panels.
     plot(m.stan, vs = c('duration', 'order'), verbose = F)
+
     ## A simple contrast calculated on the posterior threshold samples
     round(t(apply(smp, 2, function(x)quantile(x[,'DECISION-RATING'] - x[,'RATING-DECISION'],
                                               c(.025, .975)))), 2)

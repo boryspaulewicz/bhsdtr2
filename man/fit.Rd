@@ -2,20 +2,50 @@
 % Please edit documentation in R/fit.R
 \name{fit}
 \alias{fit}
-\title{fit a bhsdtr model using ml or stan}
+\title{Fit a bhsdtr model using jmap or stan}
 \usage{
 fit(
   m,
-  method = "ml",
-  ml_init = 0,
+  method = "jmap",
+  stan_optimizations = T,
+  jmap_init = 0,
   chains = parallel::detectCores() - 1,
   iter = max(20000/chains, 5000),
   warmup = 2000,
   init_r = 0.5,
-  stan_optimizations = T,
   ...
 )
 }
+\arguments{
+\item{m}{a (possibly fitted) bhsdtr model object}
+
+\item{method}{either 'jmap' (the default) or 'stan'}
+
+\item{stan_optimizations}{Wether to set the recommended stan
+optimizations (mc.cores, auto_write). The default is T.}
+
+\item{jmap_init}{initial values for the optimizing function (the
+default is 0)}
+
+\item{chains}{The dafault is parallel::detectCores() - 1, i.e.,
+one core left for other tasks.}
+
+\item{iter}{The default is max(20000 / chains, 5000). Only
+relevant if method == 'stan'.}
+
+\item{warmup}{The default is 2000. Only relevant if method ==
+'stan'.}
+
+\item{init_r}{The default is .5. Only relevant if method ==
+'stan'.}
+
+\item{...}{other arguments passed to the optimizing or stan
+function}
+}
+\value{
+a bhsdtr model object with updated $jmap (if method ==
+    'jmap') or the $stanfit (if method == 'stan') field
+}
 \description{
-fit a bhsdtr model using ml or stan
+Fit a bhsdtr model using jmap or stan
 }

@@ -30,8 +30,8 @@ print.bhsdtr_model = function(x, ...){
     cat(sprintf('variables: %s, ', paste(sort(names(x$adata$data)), collapse = ' ')))
     cat(sprintf('data size original: %d, aggregated: %d\n', x$data_size, nrow(x$adata$data)))
     str = NULL
-    if(!is.null(x$mlfit))
-        str = c(str, 'ml')
+    if(!is.null(x$jmapfit))
+        str = c(str, 'jmap')
     if(!is.null(x$stanfit))
         str = c(str, 'stan')
     if(!is.null(str))
@@ -39,7 +39,7 @@ print.bhsdtr_model = function(x, ...){
     invisible(x)
 }
 
-##' print bhsdtr condition-specific samples or ml point estimates
+##' print bhsdtr condition-specific samples or jmap point estimates
 ##'
 ##' @export
 print.bhsdtr_samples = function(x, digits = 2, probs = c(.025, .975), ...){

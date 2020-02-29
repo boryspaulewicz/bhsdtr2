@@ -2,10 +2,10 @@
 % Please edit documentation in R/unbiased.R
 \name{unbiased}
 \alias{unbiased}
-\title{"unbiased" thresholds for the parsimonious link function}
+\title{Calculates "unbiased" thresholds for the parsimonious link function}
 \usage{
 unbiased(K)
 }
 \description{
-"unbiased" thresholds for the parsimonious link function
+Calculates "unbiased" thresholds for the parsimonious link function
 }

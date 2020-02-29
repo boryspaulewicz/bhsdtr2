@@ -2,12 +2,17 @@ library(bhsdtr2)
 library(rstan)
 
 gabor$r = with(gabor, combined.response(stim, rating, acc))
+gabor$r2 = with(gabor, combined.response(stim, accuracy = acc))
 
-(m1 = bhsdtr(c(dprim ~ 1 + (1 | id), thr ~ 1 + (1 | id)), r ~ stim,
+
+(m1.1 = bhsdtr(c(dprim ~ 1 + (1 | id), thr ~ 1 + (1 | id)), r2 ~ stim,
              gabor[(gabor$order == 'DECISION-RATING') & (gabor$duration == '32 ms'),]))
+samples(m1.1, 'dprim')
 
+(m1.2 = bhsdtr(c(dprim ~ 1 + (1 | id), thr ~ 1 + (1 | id)), r ~ stim,
+             gabor[(gabor$order == 'DECISION-RATING') & (gabor$duration == '32 ms'),]))
 (res = samples(m1, 'dprim'))
-plot(m1)
+plot(m1.2)
 
 (m2 = bhsdtr(c(dprim ~ 1 + (1 | id), thr ~ 1 + (1 | id)), r ~ stim,
              gabor[(gabor$order == 'DECISION-RATING') & (gabor$duration == '32 ms'),],
@@ -43,7 +48,6 @@ sim_sdt = function(n = 1, dprim = 1.5, criteria = c(-2.1, -1.4, -.7, 0, .7, 1.4,
 
 ######################################################################
 
-
 samples(m, 'dprim')
 
 ## Testy
@@ -51,7 +55,7 @@ fit = 'ml'
 models = c('sdt', 'uvsdt', 'metad')
 links = c('softmax', 'log_distance', 'log_ratio', 'parsimonious', 'twoparameter')
 
-test_fixed_models = function(fit = 'ml', links = c('softmax', 'log_distance', 'log_ratio', 'parsimonious', 'twoparameter'),
+test_fixed_models = function(fit = 'jmap', links = c('softmax', 'log_distance', 'log_ratio', 'parsimonious', 'twoparameter'),
                             models = c('sdt', 'uvsdt')){ ## 'metad'
     d = sim_sdt(n = 10000)
     ## sd_ratio = 2 checked -> theta ~= log(2)
@@ -62,11 +66,11 @@ test_fixed_models = function(fit = 'ml', links = c('softmax', 'log_distance', 'l
         for(link in levels(res$link)){
             print(sprintf('Fitting model %s with link %s', model, link))
             if(model == 'uvsdt'){
-                m = bhsdtr(c(dprim ~ 1, thr ~ 1, sdratio ~ 1), r ~ stim, d, list(gamma = link), fit = fit)
+                m = bhsdtr(c(dprim ~ 1, thr ~ 1, sdratio ~ 1), r ~ stim, d, list(gamma = link), method = fit)
             }else if(model == 'sdt'){
-                m = bhsdtr(c(dprim ~ 1, thr ~ 1), r ~ stim, d, list(gamma = link), fit = fit)
+                m = bhsdtr(c(dprim ~ 1, thr ~ 1), r ~ stim, d, list(gamma = link), method = fit)
             }else if(model == 'metad'){
-                m = bhsdtr(c(metad ~ 1, thr ~ 1), r ~ stim, d, list(gamma = link), fit = fit)
+                m = bhsdtr(c(metad ~ 1, thr ~ 1), r ~ stim, d, list(gamma = link), method = fit)
             }
             res[(res$link == link) & (res$model == model), 'est'] = c(apply(t(samples(m, 'dprim')[,1,]), 2, mean), apply(samples(m, 'thr'), 2, mean))
             res[(res$link == link) & (res$model == model), 'true'] = c(dprim = attr(d, 'dprim'), attr(d, 'criteria'))
@@ -83,6 +87,7 @@ test_fixed_models = function(fit = 'ml', links = c('softmax', 'log_distance', 'l
     res
 }
 
+test_fixed_models(models = 'sdt', links = 'parsimonious')
 test_fixed_models(models = 'sdt')
 test_fixed_models(models = 'uvsdt')
 test_fixed_models(models = 'metad', links = 'parsimonious')

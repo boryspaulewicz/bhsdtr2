@@ -1,6 +1,6 @@
 ## -*- coding: utf-8 -*-
 
-##' "unbiased" thresholds for the parsimonious link function
+##' Calculates "unbiased" thresholds for the parsimonious link function
 ##' 
 ##' @export
 unbiased = function(K){

@@ -1,4 +1,4 @@
-At present, only the most important functions in the bhsdtr2 package (i.e., bhsdtr and samples) are documented.
+At present, only the most important functions in the bhsdtr2 package (e.g., bhsdtr, samples) are documented.
 
 The bhsdtr2 package overview
 ----------------------------
@@ -66,7 +66,38 @@ To fit a hierarchical SDT model with multiple thresholds to this data we need to
 gabor$r = combined.response(gabor$stim, gabor$rating, gabor$acc)
 ```
 
-The combined responses are automatically aggregated to make the sampling more efficient. Here is how you can fit the hierarchical EV Normal SDT model in which we assume that d' depends on duration (a within-subject variable) and order (a between-subject variable), the effect of duration may vary between the participants, and the thresholds, which may also vary between the participants, depend only on order:
+The combined responses are automatically aggregated to make the sampling more efficient. Here is how you can fit the simplest possible SDT model, i.e., EV Normal with one threshold / criterion, to the data from one participant in one condition:
+
+``` r
+gabor$r.binary = combined.response(gabor$stim, accuracy = gabor$acc)
+unique(gabor[order(gabor$r), c('stim', 'r.binary', 'acc', 'rating',  'r')])
+```
+
+         stim r.binary acc rating r
+    4       0        1   1      3 1
+    1064    1        1   0      3 1
+    3       0        1   1      2 2
+    32      1        1   0      2 2
+    1       1        1   0      1 3
+    21      0        1   1      1 3
+    35      0        1   1      0 4
+    52      1        1   0      0 4
+    53      0        2   0      0 5
+    96      1        2   1      0 5
+    34      1        2   1      1 6
+    44      0        2   0      1 6
+    8       1        2   1      2 7
+    36      0        2   0      2 7
+    13      1        2   1      3 8
+    239     0        2   0      3 8
+
+``` r
+m = bhsdtr(c(dprim ~ 1, thr ~ 1), r.binary ~ stim,
+           gabor[gabor$order == 'DECISION-RATING' & gabor$duration == '32 ms' &
+                 gabor$id == 1,])
+```
+
+Here is how you can fit the hierarchical EV Normal SDT model in which we assume that d' depends on duration (a within-subject variable) and order (a between-subject variable), the effect of duration may vary between the participants, and the thresholds - which may also vary between the participants - depend only on order:
 
 ``` r
 m = bhsdtr(c(dprim ~ duration * order + (duration | id), thr ~ order + (1 | id)),
@@ -74,9 +105,9 @@ m = bhsdtr(c(dprim ~ duration * order + (duration | id), thr ~ order + (1 | id))
            gabor)
 ```
 
-On my laptop, this model was fitted in less than half a minute, because by default, bhsdtr2 uses maximum likelihood optimization. If you want posterior samples you just have to add the fit\_method = 'stan' argument (plus any additional arguments that you want to pass to the stan function, although the defaults seem to be working quite well most of the time).
+On my laptop, this model was fitted in less than half a minute, because by default, bhsdtr2 uses stan's optimizing function which fits the model by maximizing the joint posterior. If you want posterior samples you just have to add the method = 'stan' argument (plus any additional arguments that you want to pass to the stan function, although the defaults seem to be working quite well most of the time).
 
-Even though in bhsdtr2 the d' (meta-d', thresholds, latent mean, sd ratio) parameter is internally represented by the isomorphic delta (delta, gamma, eta, theta) parameter (more on that later) and the two kinds of parameters are non-linearly related, you can easily obtain condition-specific posterior samples (fit\_method = 'stan') or point estimates (fit\_method = 'ml', which is the default) of d' (meta-d', thresholds, latent means, the standard deviation ratios) using the samples function:
+Even though in bhsdtr2 the d' (meta-d', thresholds, latent mean, sd ratio) parameter is internally represented by the isomorphic delta (delta, gamma, eta, theta) parameter (more on that later) and the two kinds of parameters are non-linearly related, you can easily obtain condition-specific posterior samples (method = 'stan') or point estimates (method = 'jmap', which is the default) of d' (meta-d', thresholds, latent means, the standard deviation ratios) using the samples function:
 
 ``` r
 samples(m, 'dprim')
@@ -91,7 +122,7 @@ samples(m, 'dprim')
 
 If this model was fitted using stan you would also see a similar summary table, but the object returned by the samples function would contain all the posterior samples, stored as a three dimensional array, where the first dimension is the sample number, the second dimension is the dimensionality of the parameter (d' has 1, meta-d' has 2, thresholds have K - 1, sd ratio has 1, latent mean has 1), and the third dimension corresponds to all the unique combinations of the predictors specified in the model formula for the given parameter, seen above as the names of the rows.
 
-All you have to do to fit the UV version of this model is introduce the model formula for the sdratio parameter. Here, for example, we assume that the ratio of the standard deviations may vary between the participants:
+To do to fit the UV version of this model you have to introduce the model formula for the sdratio parameter. Here, for example, we assume that the ratio of the standard deviations doest not depend on any of the two factors, but may vary between the participants:
 
 ``` r
 m = bhsdtr(c(dprim ~ duration * order + (duration | id), thr ~ order + (1 | id),
@@ -117,26 +148,27 @@ m = bhsdtr(c(dprim ~ duration * order + (duration | id), thr ~ order + (1 | id),
            gabor,)
 ```
 
-etc. If you want to see if the model fits you can just write:
+etc. The plot method will show you if the model fits:
 
 ``` r
 plot(m)
 ```
 
-![](Figs/unnamed-chunk-10-1.svg)
+![](Figs/unnamed-chunk-12-1.svg)
 
-By the way, the main reason why this model does not fit very well (at least in my opinion) is that the thresholds are rather constrained when the parsimonious link function is used. If you use stan:
+Judging by this plot, the parsimonious model may be a bit too constrained. If you use stan:
 
 ``` r
 m.stan = bhsdtr(c(dprim ~ duration * order + (duration | id), thr ~ order + (1 | id)),
                 r ~ stim,
-                gabor, fit_method = 'stan')
+                gabor, method = 'stan')
 ```
 
 you will be able to enjoy the stan summary table:
 
 ``` r
-print(m.stan$stanfit, probs = c(.025, .975), pars = c('delta_fixed', 'gamma_fixed'))
+print(m.stan$stanfit, probs = c(.025, .975),
+      pars = c('delta_fixed', 'gamma_fixed'))
 ```
 
     Inference for Stan model: f1227ab9a3feb55de2e21a3383b8b94d.
@@ -174,7 +206,7 @@ and you will see the predictive intervals in the response distribution plots:
 plot(m.stan, vs = c('duration', 'order'), verbose = F)
 ```
 
-![](Figs/unnamed-chunk-14-1.svg)
+![](Figs/unnamed-chunk-16-1.svg)
 
 as well as in the ROC plots:
 
@@ -182,7 +214,7 @@ as well as in the ROC plots:
 plot(m.stan, vs = c('duration', 'order'), type = 'roc',  verbose = F)
 ```
 
-![](Figs/unnamed-chunk-15-1.svg)
+![](Figs/unnamed-chunk-17-1.svg)
 
 If you know what you are doing, you can use the stan posterior samples directly, but if the very idea of a link function makes you feel uneasy, note that most of the time you can forget about the delta, gamma, theta, and eta parameters and rely on the samples function:
 
@@ -195,7 +227,7 @@ If you know what you are doing, you can use the stan posterior samples directly,
     DECISION-RATING -2.12 -1.46 -0.89  0.08  0.68  1.10  1.90
     RATING-DECISION -2.51 -1.65 -0.91 -0.11  0.61  1.15  2.15
 
-except for the random effects' standard deviations and correlation matrices. In this case, the array returned by the samples function has the following dimensions:
+except for the random effects' standard deviations and correlation matrices, with witch you have to deal directly. In this case, the array returned by the samples function has the following dimensions:
 
 ``` r
 dim(smp)
@@ -203,7 +235,7 @@ dim(smp)
 
     [1] 21000     7     2
 
-which means we have 21000 samples, 7 thresholds, and 2 conditions. Does the order affect the thresholds? We can compare the conditions separately for each threshold by apply-ing the quantile function to the sub-matrices indexed by the second (threshold number) dimension.
+which means that we have 21000 samples, 7 thresholds, and 2 conditions. Does the order affect the thresholds? We can compare the conditions separately for each threshold by apply-ing the quantile function to the sub-matrices indexed by the second (threshold number) dimension.
 
 ``` r
 round(t(apply(smp, 2, function(x)quantile(x[,1] - x[,2], c(.025, .975)))), 2)

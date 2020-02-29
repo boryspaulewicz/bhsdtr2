@@ -7,8 +7,8 @@ plot.bhsdtr_model = function(x, vs = NULL, type = 'response', alpha = .05, bw = 
     ## only ~ 1, so no variables in the aggregated data object
     if(ncol(x$adata$data) == 0)
         x$adata$data = data.frame(x = rep(' ', nrow(x$adata$data)))
-    if(!is.null(x$mlfit))
-        p = ml.plot(x$mlfit, x$code, x$model, x$adata, x$sdata)
+    if(!is.null(x$jmapfit))
+        p = pointest.plot(x$jmapfit, x$code, x$model, x$adata, x$sdata)
     if(!is.null(x$stanfit)){
         vs = names(x$adata$data)
         for(rpar in x$random)
@@ -111,8 +111,8 @@ plot.bhsdtr_model = function(x, vs = NULL, type = 'response', alpha = .05, bw = 
     p
 }
 
-ml.plot = function(mlfit, model_code, model, adata, sdata){
-    mp = matrix(mlfit$par[grep('multinomial_p', names(mlfit$par))], nrow = max(1, nrow(adata$data)))
+pointest.plot = function(jmapfit, model_code, model, adata, sdata){
+    poinstest = matrix(jmapfit$par[grep('multinomial_p', names(jmapfit$par))], nrow = max(1, nrow(adata$data)))
     obs = t(apply(sdata$counts, 1, function(x)(x / sum(x))))
     if(model %in% c('sdt', 'uvsdt', 'metad'))
         stim = as.factor(adata$stimulus)
@@ -124,19 +124,19 @@ ml.plot = function(mlfit, model_code, model, adata, sdata){
     yl = 'p(Response)'
     if(model %in% c('sdt', 'uvsdt', 'metad')){
         xl = 'Response = Decision + Rating'
-        p = ggplot(data.frame(f = rep(f, ncol(mp)), stim = rep(stim, ncol(mp)), th = rep(1:ncol(mp), each = length(f)),
-                              mp = as.vector(mp), obs = as.vector(obs)),
+        p = ggplot(data.frame(f = rep(f, ncol(poinstest)), stim = rep(stim, ncol(poinstest)), th = rep(1:ncol(poinstest), each = length(f)),
+                              poinstest = as.vector(poinstest), obs = as.vector(obs)),
                    aes(th, obs, group = stim, color = stim)) +
-            geom_line(aes(y = mp)) +
+            geom_line(aes(y = poinstest)) +
             geom_point() +
             labs(title = title, color = 'Stimulus') + xlab(xl) + ylab(yl) +
             facet_wrap(~ f)
     }else{
         xl = 'Response = Rating'
-        p = ggplot(data.frame(f = rep(f, ncol(mp)), th = rep(1:ncol(mp), each = length(f)),
-                          mp = as.vector(mp), obs = as.vector(obs)),
+        p = ggplot(data.frame(f = rep(f, ncol(poinstest)), th = rep(1:ncol(poinstest), each = length(f)),
+                          poinstest = as.vector(poinstest), obs = as.vector(obs)),
                    aes(th, obs)) +
-            geom_line(aes(y = mp)) +
+            geom_line(aes(y = poinstest)) +
             geom_point() +
             labs(title = title) +
             xlab(xl) +

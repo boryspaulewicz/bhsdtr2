@@ -2,8 +2,7 @@
 % Please edit documentation in R/acc.to.delta.R
 \name{acc.to.delta}
 \alias{acc.to.delta}
-\title{Calculates delta = log(d') given accuracy or accuracy given delta
-assuming no bias and p(stim = 1) = 0.5.}
+\title{Calculates delta = log(d') given accuracy or accuracy given delta}
 \usage{
 acc.to.delta(acc = 0.75, delta = NULL, crit = 0)
 }
@@ -12,12 +11,14 @@ acc.to.delta(acc = 0.75, delta = NULL, crit = 0)
 be greater than 0 and lower than 1.}
 
 \item{delta}{default is NULL, if provided the delta values will be
-converted to accuracy of an unbiased observer}
+converted to accuracy}
+
+\item{crit}{the position of the main decision criterion relative to
+the midpoint between the evidence distribution means}
 }
 \value{
 delta = log(d') or expected accuracy
 }
 \description{
 Calculates delta = log(d') given accuracy or accuracy given delta
-assuming no bias and p(stim = 1) = 0.5.
 }

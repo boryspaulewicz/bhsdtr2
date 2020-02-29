@@ -2,7 +2,7 @@
 % Please edit documentation in R/samples.R
 \name{samples}
 \alias{samples}
-\title{Obtain posterior samples or ml estimates for unique combinations of predictor values}
+\title{Obtain posterior samples or jmap estimates for unique combinations of predictor values}
 \usage{
 samples(m, par, group = NULL, ...)
 }
@@ -20,12 +20,12 @@ you will get samples for every unique combination of
 predictors and levels of this grouping factor.}
 }
 \value{
-a S x D x C array, where S is the number of posterior
-    samples (= 1 for bhsdtr models fitted using ML), D is the
+aa S x D x C array, where S is the number of posterior
+    samples (= 1 for bhsdtr models fitted using jmap), D is the
     dimensionality of the parameter (dprim = 1, metad = 2, thr = K
     - 1, mean = 1, sdratio = 1), and C is the number of unique
     combinations of values of predictors for the given parameter.
 }
 \description{
-Obtain posterior samples or ml estimates for unique combinations of predictor values
+Obtain posterior samples or jmap estimates for unique combinations of predictor values
 }

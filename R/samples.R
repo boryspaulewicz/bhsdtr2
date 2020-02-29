@@ -1,6 +1,6 @@
 ## -*- coding: utf-8 -*-
 
-##' Obtain posterior samples or ml estimates for unique combinations of predictor values
+##' Obtain posterior samples or jmap estimates for unique combinations of predictor values
 ##'
 ##' @param m a fitted bhsdtr model object
 ##' @param par the name of a parameter. Can be either "dprim",
@@ -12,7 +12,7 @@
 ##'     you will get samples for every unique combination of
 ##'     predictors and levels of this grouping factor.
 ##' @return aa S x D x C array, where S is the number of posterior
-##'     samples (= 1 for bhsdtr models fitted using ML), D is the
+##'     samples (= 1 for bhsdtr models fitted using jmap), D is the
 ##'     dimensionality of the parameter (dprim = 1, metad = 2, thr = K
 ##'     - 1, mean = 1, sdratio = 1), and C is the number of unique
 ##'     combinations of values of predictors for the given parameter.
@@ -36,8 +36,9 @@ samples = function(m, par, group = NULL, ...){
     for(i in 1:(dim(result)[3]))
         result_[,,i] = fun(matrix(result[,,i], nrow = dim(result)[1]),
                         m$sdata$K, m$sdata$thresholds_scale)
-    dimnames(result_) = dimnames(result)
-    dimnames(result_)[2] = list(paste(par, 1:dim(result)[2], sep = '.'))
+    for(i in c(1, 3))
+        dimnames(result_)[i] = dimnames(result)[i]
+    dimnames(result_)[2] = list(paste(par, 1:dim(result_)[2], sep = '.'))
     class(result_) = c('bhsdtr_samples', class(result_))
     attr(result_, 'data') = attr(result, 'data')
     result_

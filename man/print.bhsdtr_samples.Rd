@@ -2,10 +2,10 @@
 % Please edit documentation in R/print.R
 \name{print.bhsdtr_samples}
 \alias{print.bhsdtr_samples}
-\title{print bhsdtr condition-specific samples or ml point estimates}
+\title{print bhsdtr condition-specific samples or jmap point estimates}
 \usage{
 \method{print}{bhsdtr_samples}(x, digits = 2, probs = c(0.025, 0.975), ...)
 }
 \description{
-print bhsdtr condition-specific samples or ml point estimates
+print bhsdtr condition-specific samples or jmap point estimates
 }
