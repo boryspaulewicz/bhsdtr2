@@ -15,6 +15,18 @@
 ##' @export
 set.prior = function(model, ...){
     args = list(...)
+    if(is.list(args[[1]])){
+        for(par.type in names(args[[1]])){
+            for(par in names(args[[1]][[par.type]])){
+                par.name = sprintf('%s_prior_%s', par.type, c(mu = 'fixed_mu', sd = 'fixed_sd', scale = 'scale')[par])
+                if(!(par.name %in% names(model$sdata)))
+                    stop(sprintf('%s %s prior parameter does not exist', par.type, par))
+                model$sdata[[par.name]] = matrix(args[[1]][[par.type]][[par]],
+                                                 nrow = nrow(model$sdata[[par.name]]),
+                                                 ncol = ncol(model$sdata[[par.name]]))
+            }
+        }
+    }
     for(arg in names(args)){
         if(length(grep('prior', arg)) == 0)
             stop(sprintf('%s is not a prior parameter', arg))

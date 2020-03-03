@@ -16,13 +16,17 @@ default.prior = function(par, len, prior.par, model, links, K){
     }else if(links$delta == 'id_log'){
         fixed_mu = exp(acc.to.delta(.75))
         if(prior.par.original == 'random_scale'){
-            fixed_sd = .5 * (acc.to.delta(.99) - acc.to.delta(.51))
+            fixed_sd = 6 ## .5 * (acc.to.delta(.99) - acc.to.delta(.51))
         }else{
             fixed_sd = .5 * (exp(acc.to.delta(.99)) - exp(acc.to.delta(.51)))
         }
     }else if(links$delta == 'log'){
-        fixed_mu = acc.to.delta(.75)
-        fixed_sd = .5 * (acc.to.delta(.99) - acc.to.delta(.51))
+        fixed_mu = .5 ## acc.to.delta(.75)
+        if(prior.par.original == 'random_scale'){
+            fixed_sd = 6
+        }else{
+            fixed_sd = 1 ## .5 * (acc.to.delta(.99) - acc.to.delta(.51))
+        }
     }
     if(model == 'metad'){
         size = 2

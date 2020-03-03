@@ -182,9 +182,9 @@ ratio) parameter is internally represented by the isomorphic delta
 (delta, gamma, eta, theta) parameter (more on that later) and the two
 kinds of parameters are non-linearly related, you can easily obtain
 condition-specific posterior samples (method = 'stan') or point
-estimates (method = 'jmap', which is the default) of d' (meta-d',
-thresholds, latent means, the standard deviation ratios) using the
-samples function:
+estimates (method = 'jmap', the default) of d' (meta-d', thresholds,
+latent means, the standard deviation ratios) using the samples
+function:
 
 ```{r}
 samples(m, 'dprim')
@@ -308,7 +308,55 @@ parameter):
 round(t(apply(smp, 2, function(x)quantile(x[,'DECISION-RATING'] - x[,'RATING-DECISION'],
                                           c(.025, .975)))), 2)
 ```
-        
+
+# Priors for d' and meta-d' fixed effects
+
+By default, d' (meta-d') are represented as delta = log(d')
+(log(meta-d')) and the prior on delta is normal. This means that the
+(implied) prior on d' is log-normal. This is how the default prior on
+d' fixed effect looks like (it is different in bhsdtr2 than in
+bhsdtr):
+
+```{r}
+m = bhsdtr(c(dprim ~ 1, thr ~ 1), r ~ stim, gabor, method = F)
+curve(dlnorm(x, m$sdata$delta_prior_fixed_mu, m$sdata$delta_prior_fixed_sd),
+      0, 5, main = 'Default prior for d\' fixed effects', xlab = 'd\'', ylab = 'p(d\')')
+```
+
+This is perhaps not very informative, but in theory this prior
+excludes 0, although in practice posterior d' samples equal to 0 are
+not excluded by this prior because of the finite precision of floating
+point numbers. As a convenient alternative, in bhsdtr2 it is now
+possible to use a more sophisticated prior for d' if the separate
+intercepts parametrization is used: when using the id_log link
+function for delta, d' = delta fixed effect * exp(sum of delta random
+effects), which means that delta (fixed effect) = d', but delta random
+effects are still on the log scale.
+
+```{r}
+m = bhsdtr(c(dprim ~ 1 + (1 | id), thr ~ 1 + (1 | id)), r ~ stim,
+           gabor[gabor$duration == '32 ms' & gabor$order == 'DECISION-RATING', ],
+           list(delta = 'id_log'))
+samples(m, 'dprim')
+```
+
+```{r}
+## delta_fixed == d' when id_log is used
+round(m$jmapfit$par['delta_fixed[1,1]'], 2)
+```
+
+When this link function is used, the prior on delta fixed effects is a
+normal distribution truncated at 0. This way non-negativity of d' is
+preserved, but d' = 0 is not excluded by the fixed effects' prior even
+in theory. This link function and prior may be especially useful when
+e.g., Savage-Dickey density ratio Bayes Factors are to be estimated
+for the d' or meta-d' fixed effects. Note however, that the ig_log
+link function can only be used when there are no quantitative
+predictors (i.e., only factors) and the separate intercepts
+parametrization is used for the fixed effects, i.e., dprim (or metad)
+~ 1, or ~ -1 + f1:...:fn, as well as for the random effects, i.e., (1
+| g), or (-1 + fl:...:fk | g), where g is the grouping factor.
+
 # The importance of order-preserving link functions in ordinal models
 
 Response labels such as "noise" and "signal" can be viewed as values
