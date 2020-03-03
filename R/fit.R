@@ -25,7 +25,7 @@ fit = function(m, method = 'jmap',
                stan_optimizations = T,
                jmap_init = 0,
                chains = parallel::detectCores() - 1, iter = max(20000 / chains, 5000), warmup = 2000, init_r = .5,
-               ...){
+               sample.prior = F, ...){
     if(method == 'jmap'){
         m$jmapfit = optimizing(stan_model(model_code = m$code), m$sdata, init = jmap_init, ...)
         if(m$jmapfit$return_code != 0)
@@ -54,9 +54,14 @@ fit = function(m, method = 'jmap',
             rstan_options(auto_write = TRUE)
             ## Sys.setenv(LOCAL_CPPFLAGS = '-march=native')
         }
-        stanargs$model_code = m$code
         stanargs$data = m$sdata
-        m$stanfit = do.call(stan, stanargs)
+        if(sample.prior){
+            stanargs$model_code = make.model.code(m$model, m$fixed, m$random, m$links, only_prior = T)
+            m$stanfit.prior = do.call(stan, stanargs)
+        }else{
+            stanargs$model_code = m$code
+            m$stanfit = do.call(stan, stanargs)
+        }
     }else{
         stop(sprintf('Unknown method %s, must be either jmap or stan', method))
     }

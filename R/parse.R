@@ -2,7 +2,7 @@
 
 ## fixed = m$fixed; random = m$random; model = m$model; links = m$links
 
-make.model.code = function(model, fixed, random, links){
+make.model.code = function(model, fixed, random, links, only_prior = F){
     pars = unique(names(fixed), names(random))
     ## data block
     code =
@@ -194,9 +194,13 @@ make.model.code = function(model, fixed, random, links){
     PAR_z_G[g] ~ normal(0, 1);\n')
             code = add.strings(code, gsub('G', g, part))
         }
-    code = add.strings(code,
+if(only_prior){
+    code = add.strings(code, '\n}\n')
+}else{
+   code = add.strings(code,
 '  for(n in 1:N)
     counts[n] ~ multinomial(multinomial_p[n]);\n}\n\n')
+}
     ## generated quantities
     code = add.strings(code,
 'generated quantities{

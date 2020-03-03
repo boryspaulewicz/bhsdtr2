@@ -350,7 +350,7 @@ normal distribution truncated at 0. This way non-negativity of d' is
 preserved, but d' = 0 is not excluded by the fixed effects' prior even
 in theory. This link function and prior may be especially useful when
 e.g., Savage-Dickey density ratio Bayes Factors are to be estimated
-for the d' or meta-d' fixed effects. Note however, that the ig_log
+for the d' or meta-d' fixed effects. Note however, that the id_log
 link function can only be used when there are no quantitative
 predictors (i.e., only factors) and the separate intercepts
 parametrization is used for the fixed effects, i.e., dprim (or metad)

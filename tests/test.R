@@ -1,9 +1,7 @@
 library(bhsdtr2)
 library(rstan)
-
 gabor$r = with(gabor, combined.response(stim, rating, acc))
 gabor$r2 = with(gabor, combined.response(stim, accuracy = acc))
-
 
 (m0 = bhsdtr(c(dprim ~ 1 + (1 | id), thr ~ 1 + (1 | id)), r2 ~ stim,
              gabor[(gabor$order == 'DECISION-RATING') & (gabor$duration == '32 ms'),],
@@ -24,10 +22,24 @@ plot(m1.2)
 
 (m2 = bhsdtr(c(dprim ~ 1 + (1 | id), thr ~ 1 + (1 | id)), r ~ stim,
              gabor[(gabor$order == 'DECISION-RATING') & (gabor$duration == '32 ms'),],
-             method = 'stan'))
+             method = 'stan', iter = 3000, warmup = 1000))
 (res = samples(m2, 'dprim'))
 (res = samples(m2, 'thr'))
 plot(m2)
+
+## Test set.prior
+(m3 = bhsdtr(c(dprim ~ duration + (1 | id), thr ~ 1 + (1 | id)), r ~ stim,
+             gabor[(gabor$order == 'DECISION-RATING'),],
+             method = F))
+
+priors = list(delta = list(mu = 123, sd = 234, scale = list('1' = 321), nu = list('1' = 333)))
+m3.p = set.prior(m3, delta = list(mu = 123, sd = 234, scale = list('1' = 321), nu = list('1' = 333)))
+all(m3.p$sdata$delta_prior_fixed_mu == priors$delta$mu) &
+all(m3.p$sdata$delta_prior_fixed_sd == priors$delta$sd) &
+all(m3.p$sdata$delta_prior_scale_1 ==  priors$delta$scale[['1']]) &
+all(m3.p$sdata$delta_prior_nu_1 ==  priors$delta$nu[['1']])
+
+m3.p = set.prior(m3, delta = list(mu = 123, sd = 234, scale = list('1' = 321), nu = list('1' = 333)))
 
 (m3 = bhsdtr(c(dprim ~ duration + (1 | id), thr ~ 1 + (1 | id)), r ~ stim,
              gabor[(gabor$order == 'DECISION-RATING'),],

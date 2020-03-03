@@ -176,7 +176,7 @@ The fitted object will be stored in the $jmapfit field of the bhsdtr model objec
     rm(res)
     ## in SDT models stim_sign = -1, 1 (this variable slightly simplifies the model code)
     sdata$stim_sign = 2 * as.numeric(as.factor(as.character(adata$stimulus))) - 3
-    sdata = sdata.matrices(sdata, adata, fixed, random, model, links)
+    sdata = sdata.matrices(sdata, adata, fixed, random, model, links, force.id_log)
     if(model == 'ordinal')
         sdata$eta_is_fixed[1,1] = 1
     ## ## Model code
@@ -199,13 +199,13 @@ The fitted object will be stored in the $jmapfit field of the bhsdtr model objec
     m
 }
 
-sdata.matrices = function(sdata, adata, fixed, random, model, links){
+sdata.matrices = function(sdata, adata, fixed, random, model, links, force.id_log = F){
     ## Fixed effects' model matrices
     for(par in names(fixed)){
         v = sprintf('X_%s', par)
         sdata[[v]] = model.matrix(fixed[[par]], adata$data)
         if(links[[par]] == 'id_log')
-            if(!is.separate.intercepts(sdata[[v]]))
+            if(!is.separate.intercepts(sdata[[v]]) & !force.id_log)
                 stop(sprintf('id_log link requires separate intercepts parametrization (e.g., ~ -1 + f1:f2),
   found: %s %s\n',
                              par, paste(as.character(fixed[[par]]), collapse = ' ')))
@@ -223,11 +223,11 @@ sdata.matrices = function(sdata, adata, fixed, random, model, links){
         for(i in 1:length(random[[par]])){
             Z[[i]] = model.matrix(random[[par]][[i]]$model.formula, adata$data)
             if(links[[par]] == 'id_log')
-                if(!is.separate.intercepts(Z[[i]]))
+                if(!is.separate.intercepts(Z[[i]]) & !force.id_log)
                     stop(sprintf('id_log link requires separate intercepts parametrization (e.g., ~ -1 + f1:f2),
   found: %s %s | %s',
- par, paste(as.character(random[[par]][[i]]$model.formula), collapse = ' '),
- random[[par]][[i]]$group.name))
+  par, paste(as.character(random[[par]][[i]]$model.formula), collapse = ' '),
+  random[[par]][[i]]$group.name))
             Z_ncol = c(Z_ncol, ncol(Z[[i]]))
             ## group indicator variable
             mf = model.frame(random[[par]][[i]]$group.formula, adata$data)

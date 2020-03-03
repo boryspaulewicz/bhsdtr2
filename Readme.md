@@ -319,7 +319,7 @@ round(m$jmapfit$par['delta_fixed[1,1]'], 2)
     delta_fixed[1,1] 
                 0.93 
 
-When this link function is used, the prior on delta fixed effects is a normal distribution truncated at 0. This way non-negativity of d' is preserved, but d' = 0 is not excluded by the fixed effects' prior even in theory. This link function and prior may be especially useful when e.g., Savage-Dickey density ratio Bayes Factors are to be estimated for the d' or meta-d' fixed effects. Note however, that the ig\_log link function can only be used when there are no quantitative predictors (i.e., only factors) and the separate intercepts parametrization is used for the fixed effects, i.e., dprim (or metad) ~ 1, or ~ -1 + f1:...:fn, as well as for the random effects, i.e., (1 | g), or (-1 + fl:...:fk | g), where g is the grouping factor.
+When this link function is used, the prior on delta fixed effects is a normal distribution truncated at 0. This way non-negativity of d' is preserved, but d' = 0 is not excluded by the fixed effects' prior even in theory. This link function and prior may be especially useful when e.g., Savage-Dickey density ratio Bayes Factors are to be estimated for the d' or meta-d' fixed effects. Note however, that the id\_log link function can only be used when there are no quantitative predictors (i.e., only factors) and the separate intercepts parametrization is used for the fixed effects, i.e., dprim (or metad) ~ 1, or ~ -1 + f1:...:fn, as well as for the random effects, i.e., (1 | g), or (-1 + fl:...:fk | g), where g is the grouping factor.
 
 The importance of order-preserving link functions in ordinal models
 ===================================================================

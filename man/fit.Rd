@@ -13,6 +13,7 @@ fit(
   iter = max(20000/chains, 5000),
   warmup = 2000,
   init_r = 0.5,
+  sample.prior = F,
   ...
 )
 }
