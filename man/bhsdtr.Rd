@@ -11,6 +11,7 @@ bhsdtr(
   links = list(gamma = "log_distance"),
   method = "jmap",
   thresholds_scale = 2,
+  force.id_log = F,
   ...
 )
 }
@@ -48,15 +49,18 @@ delta = 'log' (the default, which covers both the d' and the
 meta-d' parameters), and delta = 'identity' (i.e., no
 conversion between delta and d' or meta-d').}
 
-\item{method}{a string which specifies how to fit the
-model. The default is 'jmap', which results in an attempt to
-quickly maximize the joint posterior by using the optimizing
-function, but you can also choose 'stan', or, if you do not
-want the model to be fitted right away, you can use anything
-else.}
+\item{method}{a string which specifies how to fit the model. The
+default is 'jmap', which results in an attempt to quickly
+maximize the joint posterior by using the optimizing function,
+but you can also choose 'stan', or, if you do not want the
+model to be fitted right away, you can use anything else.}
 
 \item{thresholds_scale}{thresholds scaling factor for the softmax
 gamma link function (see the bhsdtr preprint).}
+
+\item{force.id_log}{If FALSE (the default) separate
+intercepts parametrization will be required for the delta / d'
+/ meta-d' model matrices when using the id_log link function.}
 
 \item{...}{arguments to be passed to the stan function.}
 }

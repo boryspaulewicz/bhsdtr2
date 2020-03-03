@@ -39,13 +39,17 @@ rmatch = function (pattern, vector){
 }
 
 is.separate.intercepts = function(X){
-    separate.intercepts = T
-    for(i in 1:ncol(X)){
-        if(length(table(X[, i])) != 2){
-            separate.intercepts = F
-        }else if(!all(names(table(X[, i])) == c('0', '1'))){
-            separate.intercepts = F
-        }
-    }
-    separate.intercepts
+    all(unique(as.vector(X)) %in% 0:1) &
+        all((abs(X) %*% rep(1, ncol(X))) == 1)
+    ## separate.intercepts = T
+    ## for(i in 1:ncol(X)){
+    ##     if(length(table(X[, i])) != 2){
+    ##         separate.intercepts = F
+    ##     }else if(!all(names(table(X[, i])) == c('0', '1'))){
+    ##         separate.intercepts = F
+    ##     }
+    ## }
+    ## if(!all(apply(X, 1, sum) == 1))
+    ##     separate.intercepts = F
+    ## separate.intercepts
 }

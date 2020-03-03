@@ -32,14 +32,16 @@
 ##'     delta = 'log' (the default, which covers both the d' and the
 ##'     meta-d' parameters), and delta = 'identity' (i.e., no
 ##'     conversion between delta and d' or meta-d').
-##' @param method a string which specifies how to fit the
-##'     model. The default is 'jmap', which results in an attempt to
-##'     quickly maximize the joint posterior by using the optimizing
-##'     function, but you can also choose 'stan', or, if you do not
-##'     want the model to be fitted right away, you can use anything
-##'     else.
+##' @param method a string which specifies how to fit the model. The
+##'     default is 'jmap', which results in an attempt to quickly
+##'     maximize the joint posterior by using the optimizing function,
+##'     but you can also choose 'stan', or, if you do not want the
+##'     model to be fitted right away, you can use anything else.
 ##' @param thresholds_scale thresholds scaling factor for the softmax
 ##'     gamma link function (see the bhsdtr preprint).
+##' @param force.id_log If FALSE (the default) separate
+##'     intercepts parametrization will be required for the delta / d'
+##'     / meta-d' model matrices when using the id_log link function.
 ##' @param ... arguments to be passed to the stan function.
 ##' @return a bhsdtr_model object, which is an S3 class object, so you
 ##'     can easily access its insides. If it was fitted using the jmap
@@ -81,7 +83,7 @@
 ##' @export
 bhsdtr = function(model_formulae, response_formula, data,
                   links = list(gamma = 'log_distance'), method = 'jmap',
-                  thresholds_scale = 2, ...){
+                  thresholds_scale = 2, force.id_log = F, ...){
     if(method == 'ml'){
         method = 'jmap'
         stop('method = \'ml\' is no longer a valid argument, use method = \'jmap\' instead.
@@ -160,13 +162,13 @@ The fitted object will be stored in the $jmapfit field of the bhsdtr model objec
     }
     ## Agreggation
     K = max(resp.stim.vars$resp, na.rm = T)
-    ## Only the relevant variables without response and stimulus variables. 
-    ## If there is only one variable, we have to make sure data does not
-    ## become a vector
+    ## Only the relevant variables without the response and the
+    ## stimulus variables. If there is only one variable, we have to
+    ## make sure data does not become a vector.
     data = data[, vnames, drop = F]
     res = aggregate.data(data, resp.stim.vars, K)
     adata = res$adata
-    links = fix.model.links(model, fixed, random, links, K)
+    links = fill.model.links(model, fixed, random, links, adata$data, K)
     ## Creatinng data structures and model code for stan
     sdata = list(N = nrow(adata$data), K = K, Kb2 = round(K / 2), PRINT = 0,
                  unbiased = fix.stan.dim(unbiased(K)), thresholds_scale = thresholds_scale,
@@ -177,16 +179,20 @@ The fitted object will be stored in the $jmapfit field of the bhsdtr model objec
     sdata = sdata.matrices(sdata, adata, fixed, random, model, links)
     if(model == 'ordinal')
         sdata$eta_is_fixed[1,1] = 1
-    ## Model code
-    par_types = unique(names(fixed), names(random))
-    parsed = parse.PAR(readLines(stan.file('ordinal_template.stan')), par_types)
-    parsed = parse.likelihood(parsed, model)
-    parsed = parse.random(parsed, random, par_types)
-    for(par in names(links))
-        parsed = parse.link(parsed, par, links[[par]])
+    ## ## Model code
+    ## par_types = unique(names(fixed), names(random))
+    ## parsed = parse.PAR(readLines(stan.file('ordinal_template.stan')), par_types)
+    ## parsed = parse.likelihood(parsed, model)
+    ## parsed = parse.random(parsed, random, par_types)
+    ## for(par in names(links))
+    ##     parsed = parse.link(parsed, par, links[[par]])
+    ##
     ## bhsdtr object
-    m = list(fixed = fixed, random = random, adata = adata, sdata = sdata, model = model, links = links, data_size = nrow(data),
-             code = paste(parsed, collapse = '\n'))
+    m = list(fixed = fixed, random = random,
+             adata = adata, sdata = sdata, data_size = nrow(data),
+             model = model, links = links,
+             code = make.model.code(model, fixed, random, links))
+             ## code = paste(parsed, collapse = '\n'))
     class(m) = c('bhsdtr_model', class(m))
     if(method %in% c('jmap', 'stan'))
         m = fit(m, method, ...)
@@ -198,12 +204,17 @@ sdata.matrices = function(sdata, adata, fixed, random, model, links){
     for(par in names(fixed)){
         v = sprintf('X_%s', par)
         sdata[[v]] = model.matrix(fixed[[par]], adata$data)
+        if(links[[par]] == 'id_log')
+            if(!is.separate.intercepts(sdata[[v]]))
+                stop(sprintf('id_log link requires separate intercepts parametrization (e.g., ~ -1 + f1:f2),
+  found: %s %s\n',
+                             par, paste(as.character(fixed[[par]]), collapse = ' ')))
         sdata[[sprintf('X_%s_ncol', par)]] = ncol(sdata[[v]])
         sdata[[sprintf('%s_is_fixed', par)]] = sdata[[sprintf('%s_fixed_value', par)]] =
             matrix(0, nrow = par.size(par, model, links, sdata$K)[1], ncol = ncol(sdata[[v]]))
         ## priors
         for(prior.par in c('fixed_mu', 'fixed_sd'))
-            sdata[[sprintf('%s_prior_%s', par, prior.par)]] = default_prior(par, ncol(sdata[[v]]), prior.par, model, links, sdata$K)
+            sdata[[sprintf('%s_prior_%s', par, prior.par)]] = default.prior(par, ncol(sdata[[v]]), prior.par, model, links, sdata$K)
     }
     ## Random effects' model matrices
     for(par in names(random)){
@@ -211,6 +222,12 @@ sdata.matrices = function(sdata, adata, fixed, random, model, links){
         Z_ncol = g_max = NULL
         for(i in 1:length(random[[par]])){
             Z[[i]] = model.matrix(random[[par]][[i]]$model.formula, adata$data)
+            if(links[[par]] == 'id_log')
+                if(!is.separate.intercepts(Z[[i]]))
+                    stop(sprintf('id_log link requires separate intercepts parametrization (e.g., ~ -1 + f1:f2),
+  found: %s %s | %s',
+ par, paste(as.character(random[[par]][[i]]$model.formula), collapse = ' '),
+ random[[par]][[i]]$group.name))
             Z_ncol = c(Z_ncol, ncol(Z[[i]]))
             ## group indicator variable
             mf = model.frame(random[[par]][[i]]$group.formula, adata$data)
@@ -232,7 +249,7 @@ sdata.matrices = function(sdata, adata, fixed, random, model, links){
             sdata[[sprintf('Z_%s_ncol_%d', par, i)]] = Z_ncol[i]
             ## scale and nu priors
             sdata[[sprintf('%s_prior_nu_%d', par, i)]] = 1
-            sdata[[sprintf('%s_prior_scale_%d', par, i)]] = default_prior(par, Z_ncol[i], 'random_scale', model, links, sdata$K)
+            sdata[[sprintf('%s_prior_scale_%d', par, i)]] = default.prior(par, Z_ncol[i], 'random_scale', model, links, sdata$K)
         }
     }
     ## Parameter matrix dimensions for par and par_ = link(par)
@@ -267,7 +284,7 @@ aggregate.data = function(data, resp.stim.vars, K){
     list(adata = adata, counts = counts)
 }
 
-fix.model.links = function(model, fixed, random, links, K){
+fill.model.links = function(model, fixed, random, links, data, K){
     model_pars = list(sdt = c('delta', 'gamma'),
                       metad = c('delta', 'gamma'),
                       uvmetad = c('delta', 'gamma', 'theta'),
@@ -284,9 +301,22 @@ fix.model.links = function(model, fixed, random, links, K){
     if((K < 3) & (model %in% c('uvsdt', 'metad')))
         stop(sprintf('Model %s needs K > 2', model))
     par_links = list(gamma = c('log_distance', 'log_ratio', 'softmax', 'twoparameter', 'parsimonious', 'identity'),
-                     delta = c('log', 'identity'),
+                     delta = c('log', 'id_log', 'identity'),
                      theta = c('log'),
                      eta = c('identity'))
+    ## delta.separate.intercepts = T
+    ## if(!is.null(fixed$delta))
+    ##     delta.separate.intercepts = delta.separate.intercepts &
+    ##         is.separate.intercepts(model.matrix(fixed$delta, data))
+    ## if(!is.null(random$delta))
+    ##     for(g in 1:length(random$delta))
+    ##             delta.separate.intercepts = delta.separate.intercepts &
+    ##                 is.separate.intercepts(model.matrix(random$delta[[g]]$model.formula, data))
+    ## if(delta.separate.intercepts){
+    ##     par_links$delta = c('id_log', 'log', 'identity')
+    ## }else{
+    ##     par_links$delta = c('log', 'identity', 'id_log')
+    ## }
     for(par in names(links))
         if(!(links[[par]] %in% par_links[[par]]))
             stop(sprintf('Link %s not allowed for %s', links[[par]], par))

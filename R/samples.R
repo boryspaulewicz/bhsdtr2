@@ -30,7 +30,7 @@ samples = function(m, par, group = NULL, ...){
         fun = function(x, ...)x
     }
     result = condition.specific.samples(m, par2, group, ...)
-    ## par2_size because e.g., gamma_size_ > gamma_size when link = 'parsimonious' or 'twoparameter'
+    ## par2_size_ because e.g., gamma_size_ > gamma_size when link = 'parsimonious' or 'twoparameter'
     result_ = array(dim = c(dim(result)[1], m$sdata[[sprintf('%s_size_', par2)]], dim(result)[3]))
     ## i is condition number
     for(i in 1:(dim(result)[3]))

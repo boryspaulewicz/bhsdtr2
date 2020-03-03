@@ -29,6 +29,7 @@ ordinal models.
 For example, a hierarchical SDT model can be fitted by writing:
 
 ```{r eval = F}  
+gabor$r = combined.response(gabor$stim, gabor$rating, gabor$acc)
 m = bhsdtr(c(dprim ~ duration * order + (duration | id), thr ~ order + (1 | id)),
            r ~ stim,
            gabor)
@@ -72,10 +73,7 @@ the thresholds (aka criteria). To my knowledge, at present bhsdtr and
 bhsdtr2 are the only correct implementations of hierarchical SDT-like
 models, because both packages allow for variability in d' (or latent
 mean) and in individual thresholds, while respecting the assumptions
-of non-negativity (d') and order (thresholds) (see the
-[preprint](http://dx.doi.org/10.23668/psycharchives.2725) for more
-details).
-
+of non-negativity (d') and order (thresholds) (see the [preprint](http://dx.doi.org/10.23668/psycharchives.2725) for more details). 
 Without the order-preserving link functions, it is impossible to
 correctly model the effects in *individual* thresholds, including the
 possibly ubiquitous individual differences (i.e., participant effects)
@@ -121,21 +119,44 @@ binary classification decision and rating:
 gabor$r = combined.response(gabor$stim, gabor$rating, gabor$acc)
 ```
         
-The combined responses are automatically aggregated to make the
-sampling more efficient. Here is how you can fit the simplest possible
-SDT model, i.e., EV Normal with one threshold / criterion, to the data
-from one participant in one condition:
+The responses are automatically aggregated by the bhsdtr function to
+make the sampling more efficient. Here is how you can fit the simplest
+possible SDT model, i.e., EV Normal with one threshold / criterion, to
+the data from one participant in one condition and obtain the point
+estimate of d':
 
 ```{r}     
 gabor$r.binary = combined.response(gabor$stim, accuracy = gabor$acc)
 unique(gabor[order(gabor$r), c('stim', 'r.binary', 'acc', 'rating',  'r')])
 ```
 
-```{r eval = F}        
+```{r}        
 m = bhsdtr(c(dprim ~ 1, thr ~ 1), r.binary ~ stim,
            gabor[gabor$order == 'DECISION-RATING' & gabor$duration == '32 ms' &
                  gabor$id == 1,])
+samples(m, 'dprim')
 ```
+
+In bhsdtr the link-transformed parameters (i.e., delta, gamma, theta,
+and eta) have normal priors with default mean and standard deviation
+values that depend on the model type and the link function. If you
+want to use non-default priors you can alter the elements of the model
+object and fit it again using the fit function:
+
+```{r}
+## Here we introduce strong priors which imply that d' is near zero
+m.alt = set.prior(m, delta_prior_fixed_mu = log(.5), delta_prior_fixed_sd = .5)
+m.alt = fit(m.alt)
+samples(m.alt, 'dprim')
+```
+
+Note that the priors are specified using matrices. In this case there
+is only one d' fixed effect (i.e., the intercept), and d' has only one
+dimension (it has two in the meta-d' model), so the prior matrices for
+mean and standard deviation of d' fixed effects have dimension
+1x1. You can provide vectors or matrices of prior parameter values;
+The vectors will be used to fill the relevant matrices in column-major
+order.
 
 Here is how you can fit the hierarchical EV Normal SDT model in which
 we assume that d' depends on duration (a within-subject variable) and

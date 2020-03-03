@@ -5,18 +5,26 @@ gabor$r = with(gabor, combined.response(stim, rating, acc))
 gabor$r2 = with(gabor, combined.response(stim, accuracy = acc))
 
 
+(m0 = bhsdtr(c(dprim ~ 1 + (1 | id), thr ~ 1 + (1 | id)), r2 ~ stim,
+             gabor[(gabor$order == 'DECISION-RATING') & (gabor$duration == '32 ms'),],
+             method = F))
+m0 = fit(m0)
+cat(m0$code, file = '~/cs/code/r/bhsdtr2/tests/m0code.stan')
+
 (m1.1 = bhsdtr(c(dprim ~ 1 + (1 | id), thr ~ 1 + (1 | id)), r2 ~ stim,
              gabor[(gabor$order == 'DECISION-RATING') & (gabor$duration == '32 ms'),]))
 samples(m1.1, 'dprim')
+samples(m1.1, 'thr')
 
 (m1.2 = bhsdtr(c(dprim ~ 1 + (1 | id), thr ~ 1 + (1 | id)), r ~ stim,
              gabor[(gabor$order == 'DECISION-RATING') & (gabor$duration == '32 ms'),]))
-(res = samples(m1, 'dprim'))
+(res = samples(m1.2, 'dprim'))
+(res = samples(m1.2, 'thr'))
 plot(m1.2)
 
 (m2 = bhsdtr(c(dprim ~ 1 + (1 | id), thr ~ 1 + (1 | id)), r ~ stim,
              gabor[(gabor$order == 'DECISION-RATING') & (gabor$duration == '32 ms'),],
-             fit_method = 'stan'))
+             method = 'stan'))
 (res = samples(m2, 'dprim'))
 (res = samples(m2, 'thr'))
 plot(m2)
@@ -33,6 +41,9 @@ samples(m4, 'thr')
 summary((x = samples(m4, 'thr')), digits = 3)
 plot(m4)
 
+######################################################################
+## Testy
+
 sim_sdt = function(n = 1, dprim = 1.5, criteria = c(-2.1, -1.4, -.7, 0, .7, 1.4, 2.1), sd_ratio = 1){
     which_bin = function(x, thr)min(which(x <= c(-Inf, thr, Inf)) - 1)
     d = data.frame(stim = rep(1:2, each = n), e = rnorm(n * 2), r = NA)
@@ -46,11 +57,6 @@ sim_sdt = function(n = 1, dprim = 1.5, criteria = c(-2.1, -1.4, -.7, 0, .7, 1.4,
     d
 }
 
-######################################################################
-
-samples(m, 'dprim')
-
-## Testy
 fit = 'ml'
 models = c('sdt', 'uvsdt', 'metad')
 links = c('softmax', 'log_distance', 'log_ratio', 'parsimonious', 'twoparameter')
@@ -88,9 +94,9 @@ test_fixed_models = function(fit = 'jmap', links = c('softmax', 'log_distance', 
 }
 
 test_fixed_models(models = 'sdt', links = 'parsimonious')
+test_fixed_models(models = 'metad', links = 'parsimonious')
 test_fixed_models(models = 'sdt')
 test_fixed_models(models = 'uvsdt')
-test_fixed_models(models = 'metad', links = 'parsimonious')
 test_fixed_models(models = 'metad')
 
 (m1 = bhsdtr(c(dprim ~ duration * order + (duration | id), thr ~ order + (order | id)),

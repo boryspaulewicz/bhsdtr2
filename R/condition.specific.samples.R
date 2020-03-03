@@ -51,15 +51,19 @@ condition.specific.samples = function(m, par, group = NULL, method = NULL, inclu
         }
     }
     ## number of samples, par.size, number of conditions, where condition may include group level
-    result = array(dim = c(dim(samples.fixef)[1], dim(samples.fixef)[2], nrow(data)))
-    ## result = array(dim = c(dim(samples.fixef)[1:2], nrow(data)))
+    result = result.ranef =
+        array(dim = c(dim(samples.fixef)[1], dim(samples.fixef)[2], nrow(data)))
     for(s in 1:(dim(samples.fixef)[1])){
         result[s,,] = samples.fixef[s,,] %*% t(X)
         if(!is.null(group)){
-            ## adding the random effects
             for(con in 1:nrow(data)){
-                result[s,,con] = result[s,,con] +
+                result.ranef[s,,con] =
                     samples.ranef[s, data[[group.name]][con],,,drop=F] %*% t(Z[con,,drop = F ])
+            }
+            if(m$links[[par]] == 'id_log'){
+                result = result * exp(result.ranef)
+            }else{
+                result = result + result.ranef
             }
         }
     }

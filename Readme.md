@@ -8,6 +8,7 @@ The bhsdtr2 (short for Bayesian Hierarchical Signal Detection Theory with Rating
 For example, a hierarchical SDT model can be fitted by writing:
 
 ``` r
+gabor$r = combined.response(gabor$stim, gabor$rating, gabor$acc)
 m = bhsdtr(c(dprim ~ duration * order + (duration | id), thr ~ order + (1 | id)),
            r ~ stim,
            gabor)
@@ -22,9 +23,7 @@ Ordinal models are *non-linear*. An immediate consequence of non-linearity is th
 
 In the bhsdtr2 package, ordinal models are supplemented with a hierarchical linear regression structure (normally distributed correlated random effects) thanks to a novel parametrization described in this [preprint](http://dx.doi.org/10.23668/psycharchives.2725) (which was recently accepted for publication in Behavior Research Methods), and - more concisely - in the package documentation.
 
-The main advantage of the bhsdtr2 (and bhsdtr) package over other available methods of fitting ordinal models with ordered thresholds has to do with the order-preserving link functions which are used for the thresholds (aka criteria). To my knowledge, at present bhsdtr and bhsdtr2 are the only correct implementations of hierarchical SDT-like models, because both packages allow for variability in d' (or latent mean) and in individual thresholds, while respecting the assumptions of non-negativity (d') and order (thresholds) (see the [preprint](http://dx.doi.org/10.23668/psycharchives.2725) for more details).
-
-Without the order-preserving link functions, it is impossible to correctly model the effects in *individual* thresholds, including the possibly ubiquitous individual differences (i.e., participant effects) in the *pattern* of threshold placement. Note that the preprint covers only the SDT models and only one order-preserving link function, whereas there are now five such functions (softmax, log\_distance, log\_ratio, twoparamter and parsimonious) to choose from in bhsdtr and bhsdtr2.
+The main advantage of the bhsdtr2 (and bhsdtr) package over other available methods of fitting ordinal models with ordered thresholds has to do with the order-preserving link functions which are used for the thresholds (aka criteria). To my knowledge, at present bhsdtr and bhsdtr2 are the only correct implementations of hierarchical SDT-like models, because both packages allow for variability in d' (or latent mean) and in individual thresholds, while respecting the assumptions of non-negativity (d') and order (thresholds) (see the [preprint](http://dx.doi.org/10.23668/psycharchives.2725) for more details). Without the order-preserving link functions, it is impossible to correctly model the effects in *individual* thresholds, including the possibly ubiquitous individual differences (i.e., participant effects) in the *pattern* of threshold placement. Note that the preprint covers only the SDT models and only one order-preserving link function, whereas there are now five such functions (softmax, log\_distance, log\_ratio, twoparamter and parsimonious) to choose from in bhsdtr and bhsdtr2.
 
 Prerequisites
 -------------
@@ -66,7 +65,7 @@ To fit a hierarchical SDT model with multiple thresholds to this data we need to
 gabor$r = combined.response(gabor$stim, gabor$rating, gabor$acc)
 ```
 
-The combined responses are automatically aggregated to make the sampling more efficient. Here is how you can fit the simplest possible SDT model, i.e., EV Normal with one threshold / criterion, to the data from one participant in one condition:
+The responses are automatically aggregated by the bhsdtr function to make the sampling more efficient. Here is how you can fit the simplest possible SDT model, i.e., EV Normal with one threshold / criterion, to the data from one participant in one condition and obtain the point estimate of d':
 
 ``` r
 gabor$r.binary = combined.response(gabor$stim, accuracy = gabor$acc)
@@ -95,7 +94,27 @@ unique(gabor[order(gabor$r), c('stim', 'r.binary', 'acc', 'rating',  'r')])
 m = bhsdtr(c(dprim ~ 1, thr ~ 1), r.binary ~ stim,
            gabor[gabor$order == 'DECISION-RATING' & gabor$duration == '32 ms' &
                  gabor$id == 1,])
+samples(m, 'dprim')
 ```
+
+    samples: 1, estimates rounded to 2 decimal places
+     dprim.1
+        0.88
+
+In bhsdtr the link-transformed parameters (i.e., delta, gamma, theta, and eta) have normal priors with default mean and standard deviation values that depend on the model type and the link function. If you want to use non-default priors you can alter the elements of the model object and fit it again using the fit function:
+
+``` r
+## Here we introduce strong priors which imply that d' is near zero
+m.alt = set.prior(m, delta_prior_fixed_mu = log(.5), delta_prior_fixed_sd = .5)
+m.alt = fit(m.alt)
+samples(m.alt, 'dprim')
+```
+
+    samples: 1, estimates rounded to 2 decimal places
+     dprim.1
+        0.63
+
+Note that the priors are specified using matrices. In this case there is only one d' fixed effect (i.e., the intercept), and d' has only one dimension (it has two in the meta-d' model), so the prior matrices for mean and standard deviation of d' fixed effects have dimension 1x1. You can provide vectors or matrices of prior parameter values; The vectors will be used to fill the relevant matrices in column-major order.
 
 Here is how you can fit the hierarchical EV Normal SDT model in which we assume that d' depends on duration (a within-subject variable) and order (a between-subject variable), the effect of duration may vary between the participants, and the thresholds - which may also vary between the participants - depend only on order:
 
@@ -154,7 +173,7 @@ etc. The plot method will show you if the model fits:
 plot(m)
 ```
 
-![](Figs/unnamed-chunk-12-1.svg)
+![](Figs/unnamed-chunk-13-1.svg)
 
 Judging by this plot, the parsimonious model may be a bit too constrained. If you use stan:
 
@@ -206,7 +225,7 @@ and you will see the predictive intervals in the response distribution plots:
 plot(m.stan, vs = c('duration', 'order'), verbose = F)
 ```
 
-![](Figs/unnamed-chunk-16-1.svg)
+![](Figs/unnamed-chunk-17-1.svg)
 
 as well as in the ROC plots:
 
@@ -214,7 +233,7 @@ as well as in the ROC plots:
 plot(m.stan, vs = c('duration', 'order'), type = 'roc',  verbose = F)
 ```
 
-![](Figs/unnamed-chunk-17-1.svg)
+![](Figs/unnamed-chunk-18-1.svg)
 
 If you know what you are doing, you can use the stan posterior samples directly, but if the very idea of a link function makes you feel uneasy, note that most of the time you can forget about the delta, gamma, theta, and eta parameters and rely on the samples function:
 
