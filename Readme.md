@@ -91,7 +91,8 @@ unique(gabor[order(gabor$r), c('stim', 'r.binary', 'acc', 'rating',  'r')])
     239     0        2   0      3 8
 
 ``` r
-m = bhsdtr(c(dprim ~ 1, thr ~ 1), r.binary ~ stim,
+m = bhsdtr(c(dprim ~ 1, thr ~ 1),
+           r.binary ~ stim,
            gabor[gabor$order == 'DECISION-RATING' & gabor$duration == '32 ms' &
                  gabor$id == 1,])
 samples(m, 'dprim')
@@ -99,7 +100,7 @@ samples(m, 'dprim')
 
     samples: 1, estimates rounded to 2 decimal places
      dprim.1
-        0.88
+        0.95
 
 In bhsdtr the link-transformed parameters (i.e., delta, gamma, theta, and eta) have normal priors with default mean and standard deviation values that depend on the model type and the link function. If you want to use non-default priors you can alter the elements of the model object and fit it again using the fit function:
 
@@ -120,8 +121,7 @@ Here is how you can fit the hierarchical EV Normal SDT model in which we assume 
 
 ``` r
 m = bhsdtr(c(dprim ~ duration * order + (duration | id), thr ~ order + (1 | id)),
-           r ~ stim,
-           gabor)
+           r ~ stim, gabor)
 ```
 
 On my laptop, this model was fitted in less than half a minute, because by default, bhsdtr2 uses stan's optimizing function which fits the model by maximizing the joint posterior. If you want posterior samples you just have to add the method = 'stan' argument (plus any additional arguments that you want to pass to the stan function, although the defaults seem to be working quite well most of the time).
@@ -298,7 +298,7 @@ curve(dlnorm(x, m$sdata$delta_prior_fixed_mu, m$sdata$delta_prior_fixed_sd),
 
 ![](Figs/unnamed-chunk-23-1.svg)
 
-This is perhaps not very informative, but in theory this prior excludes 0, although in practice posterior d' samples equal to 0 are not excluded by this prior because of the finite precision of floating point numbers. As a convenient alternative, in bhsdtr2 it is now possible to use a more sophisticated prior for d' if the separate intercepts parametrization is used: when using the id\_log link function for delta, d' = delta fixed effect \* exp(sum of delta random effects), which means that delta (fixed effect) = d', but delta random effects are still on the log scale.
+This is perhaps not very informative in typical situations, but in theory this prior excludes 0, although in practice posterior d' samples equal to 0 are not excluded by this prior because of the finite precision of floating point numbers. As a convenient alternative, it is now possible to use a more sophisticated prior for d' if the separate intercepts parametrization is used: when using the id\_log link function for delta, d' = delta fixed effect \* exp(sum of delta random effects), which means that delta (fixed effect) = d', but delta random effects are still on the log scale.
 
 ``` r
 m = bhsdtr(c(dprim ~ 1 + (1 | id), thr ~ 1 + (1 | id)), r ~ stim,

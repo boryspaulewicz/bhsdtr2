@@ -131,7 +131,8 @@ unique(gabor[order(gabor$r), c('stim', 'r.binary', 'acc', 'rating',  'r')])
 ```
 
 ```{r}        
-m = bhsdtr(c(dprim ~ 1, thr ~ 1), r.binary ~ stim,
+m = bhsdtr(c(dprim ~ 1, thr ~ 1),
+           r.binary ~ stim,
            gabor[gabor$order == 'DECISION-RATING' & gabor$duration == '32 ms' &
                  gabor$id == 1,])
 samples(m, 'dprim')
@@ -166,8 +167,7 @@ between the participants - depend only on order:
 
 ```{r}
 m = bhsdtr(c(dprim ~ duration * order + (duration | id), thr ~ order + (1 | id)),
-           r ~ stim,
-           gabor)
+           r ~ stim, gabor)
 ```
 
 On my laptop, this model was fitted in less than half a minute,
@@ -323,15 +323,15 @@ curve(dlnorm(x, m$sdata$delta_prior_fixed_mu, m$sdata$delta_prior_fixed_sd),
       0, 5, main = 'Default prior for d\' fixed effects', xlab = 'd\'', ylab = 'p(d\')')
 ```
 
-This is perhaps not very informative, but in theory this prior
-excludes 0, although in practice posterior d' samples equal to 0 are
-not excluded by this prior because of the finite precision of floating
-point numbers. As a convenient alternative, in bhsdtr2 it is now
-possible to use a more sophisticated prior for d' if the separate
-intercepts parametrization is used: when using the id_log link
-function for delta, d' = delta fixed effect * exp(sum of delta random
-effects), which means that delta (fixed effect) = d', but delta random
-effects are still on the log scale.
+This is perhaps not very informative in typical situations, but in
+theory this prior excludes 0, although in practice posterior d'
+samples equal to 0 are not excluded by this prior because of the
+finite precision of floating point numbers. As a convenient
+alternative, it is now possible to use a more sophisticated prior for
+d' if the separate intercepts parametrization is used: when using the
+id_log link function for delta, d' = delta fixed effect * exp(sum of
+delta random effects), which means that delta (fixed effect) = d', but
+delta random effects are still on the log scale.
 
 ```{r}
 m = bhsdtr(c(dprim ~ 1 + (1 | id), thr ~ 1 + (1 | id)), r ~ stim,
