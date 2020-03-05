@@ -4,13 +4,7 @@
 \alias{condition.specific.samples}
 \title{get posterior samples or jmap point estimates per condition}
 \usage{
-condition.specific.samples(
-  m,
-  par,
-  group = NULL,
-  method = NULL,
-  include.vars = NULL
-)
+condition.specific.samples(m, par, group = NULL, method = NULL, include = NULL)
 }
 \description{
 get posterior samples or jmap point estimates per condition

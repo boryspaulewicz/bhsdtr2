@@ -3,7 +3,7 @@
 ##' get posterior samples or jmap point estimates per condition
 ##'
 ##' @export
-condition.specific.samples = function(m, par, group = NULL, method = NULL, include.vars = NULL){
+condition.specific.samples = function(m, par, group = NULL, method = NULL, include = NULL){
     if(is.null(method)){
         if(!is.null(m$stanfit)){
             method = 'stan'
@@ -14,17 +14,21 @@ condition.specific.samples = function(m, par, group = NULL, method = NULL, inclu
         }
     }
     fixed.formula = m$fixed[[par]]
-    vnames = unique(c(names(get_all_vars(fixed.formula, m$adata$data)), include.vars))
+    vnames = unique(c(names(get_all_vars(fixed.formula, m$adata$data)), include))
     if(!is.null(group)){
         group.name = m$random[[par]][[group]][['group.name']]
         group.index = m$sdata[[sprintf('%s_group_%d', par, group)]]
     }else{
         group.name = NULL
     }
-    data = m$adata$data[, unique(c(vnames, group.name)), drop = F]
-    if(!is.null(group))
-        data[[group.name]] = group.index
-    data = unique(data[, unique(c(group.name, vnames)), drop = F])
+    vnames = sort(unique(c(vnames, group.name)))
+    data = m$adata$data[, vnames, drop = F]
+    if(!is.null(group)){
+        group.to.index = unique(data.frame(original = data[[group.name]], index = group.index))
+        rownames(group.to.index) = as.character(group.to.index$original)
+        ## data[[group.name]] = group.index
+    }
+    data = unique(data[, vnames, drop = F])
     ## if e.g., dprim ~ 1
     if(nrow(data) == 0)
         data = data.frame(x = '')
@@ -58,10 +62,12 @@ condition.specific.samples = function(m, par, group = NULL, method = NULL, inclu
     for(s in 1:(dim(samples.fixef)[1]))
         result[s,,] = samples.fixef[s,,] %*% t(X)
     if(!is.null(group)){
+        group.index = group.to.index[as.character(data[[group.name]]), 'index']
         for(s in 1:(dim(samples.fixef)[1]))
             for(con in 1:nrow(data)){
                 result.ranef[s,,con] =
-                    samples.ranef[s, data[[group.name]][con],,,drop = F] %*% t(Z[con,,drop = F])
+                    ## samples.ranef[s, data[[group.name]][con],,,drop = F] %*% t(Z[con,,drop = F])
+                    samples.ranef[s, group.index[con],,,drop = F] %*% t(Z[con,,drop = F])
             }
         if(m$links[[par]] == 'id_log'){
             result = result * exp(result.ranef)

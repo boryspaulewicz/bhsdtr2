@@ -13,8 +13,8 @@ be greater than 0 and lower than 1.}
 \item{delta}{default is NULL, if provided the delta values will be
 converted to accuracy}
 
-\item{crit}{the position of the main decision criterion relative to
-the midpoint between the evidence distribution means}
+\item{crit}{main decision criterion relative to the midpoint
+between the evidence distribution means}
 }
 \value{
 delta = log(d') or expected accuracy

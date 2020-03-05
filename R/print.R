@@ -28,7 +28,7 @@ print.bhsdtr_model = function(x, ...){
     cat(paste(str, collapse = ', '))
     cat('\n')
     cat(sprintf('variables: %s, ', paste(sort(names(x$adata$data)), collapse = ' ')))
-    cat(sprintf('data size original: %d, aggregated: %d\n', x$data_size, nrow(x$adata$data)))
+    cat(sprintf('data size original: %d, aggregated: %d\n', nrow(x$data), nrow(x$adata$data)))
     str = NULL
     if(!is.null(x$jmapfit))
         str = c(str, 'jmap')

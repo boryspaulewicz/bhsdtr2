@@ -32,16 +32,19 @@
 ##'     delta = 'log' (the default, which covers both the d' and the
 ##'     meta-d' parameters), and delta = 'identity' (i.e., no
 ##'     conversion between delta and d' or meta-d').
-##' @param method a string which specifies how to fit the model. The
-##'     default is 'jmap', which results in an attempt to quickly
-##'     maximize the joint posterior by using the optimizing function,
-##'     but you can also choose 'stan', or, if you do not want the
-##'     model to be fitted right away, you can use anything else.
+##' @param method [= 'jmap'] a string which specifies how to fit the
+##'     model. The default is 'jmap', which results in an attempt to
+##'     quickly maximize the joint posterior by using the optimizing
+##'     function, but you can also choose 'stan', or, if you do not
+##'     want the model to be fitted right away, you can use anything
+##'     else.
+##' @param prior [= NULL] a list with non-default prior settings. See
+##'     the set.prior function for details.
 ##' @param thresholds_scale thresholds scaling factor for the softmax
 ##'     gamma link function (see the bhsdtr preprint).
-##' @param force.id_log If FALSE (the default) separate
-##'     intercepts parametrization will be required for the delta / d'
-##'     / meta-d' model matrices when using the id_log link function.
+##' @param force.id_log If FALSE (the default) separate intercepts
+##'     parametrization will be required for the delta / d' / meta-d'
+##'     model matrices when using the id_log link function.
 ##' @param ... arguments to be passed to the stan function.
 ##' @return a bhsdtr_model object, which is an S3 class object, so you
 ##'     can easily access its insides. If it was fitted using the jmap
@@ -83,7 +86,7 @@
 ##' @export
 bhsdtr = function(model_formulae, response_formula, data,
                   links = list(gamma = 'log_distance'), method = 'jmap',
-                  thresholds_scale = 2, force.id_log = F, ...){
+                  prior = list(), thresholds_scale = 2, force.id_log = F, ...){
     if(method == 'ml'){
         method = 'jmap'
         stop('method = \'ml\' is no longer a valid argument, use method = \'jmap\' instead.
@@ -166,6 +169,7 @@ The fitted object will be stored in the $jmapfit field of the bhsdtr model objec
     ## Agreggation: only the relevant variables without the response
     ## and the stimulus variables. If there is only one variable, we
     ## have to make sure data does not become a vector.
+    original.data = data
     data = data[, vnames, drop = F]
     res = aggregate.data(data, resp.stim.vars, K)
     adata = res$adata
@@ -184,11 +188,16 @@ The fitted object will be stored in the $jmapfit field of the bhsdtr model objec
         sdata$eta_is_fixed[1,1] = 1
     ## bhsdtr_model object
     m = list(fixed = fixed, random = random,
-             adata = adata, sdata = sdata, data_size = nrow(data),
+             adata = adata, sdata = sdata, data = original.data,
+             resp = resp.stim.vars$resp, stim = resp.stim.vars$stim,
              model = model, links = links,
              code = make.model.code(model, fixed, random, links))
              ## code = paste(parsed, collapse = '\n'))
     class(m) = c('bhsdtr_model', class(m))
+    if(!is.null(prior)){
+        prior$model = m
+        m = do.call(set.prior, prior)
+    }
     if(method %in% c('jmap', 'stan'))
         m = fit(m, method, ...)
     m

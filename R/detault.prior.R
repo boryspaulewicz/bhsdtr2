@@ -10,26 +10,28 @@ default.prior = function(par, len, prior.par, model, links, K){
     priors = list(theta = list(fixed_mu = 0, fixed_sd = log(1.5)),
                   eta = list(fixed_mu = 0, fixed_sd = 3))
     ## prior dla delta zależy od modelu i funkcji łączącej
-    if(links$delta == 'identity'){
-        fixed_mu = exp(acc.to.delta(.75))
-        fixed_sd = .5 * (exp(acc.to.delta(.99)) - exp(acc.to.delta(.51)))
-    }else if(links$delta == 'id_log'){
-        fixed_mu = exp(acc.to.delta(.75))
-        if(prior.par.original == 'random_scale'){
-            fixed_sd = 4 ## .5 * (acc.to.delta(.99) - acc.to.delta(.51))
-        }else{
+    if('delta' %in% names(links)){
+        if(links$delta == 'identity'){
+            fixed_mu = exp(acc.to.delta(.75))
             fixed_sd = .5 * (exp(acc.to.delta(.99)) - exp(acc.to.delta(.51)))
+        }else if(links$delta == 'id_log'){
+            fixed_mu = exp(acc.to.delta(.75))
+            if(prior.par.original == 'random_scale'){
+                fixed_sd = 4 ## .5 * (acc.to.delta(.99) - acc.to.delta(.51))
+            }else{
+                fixed_sd = .5 * (exp(acc.to.delta(.99)) - exp(acc.to.delta(.51)))
+            }
+        }else if(links$delta == 'log'){
+            fixed_mu = .5 ## acc.to.delta(.75)
+            if(prior.par.original == 'random_scale'){
+                fixed_sd = 4
+            }else{
+                fixed_sd = 1 ## .5 * (acc.to.delta(.99) - acc.to.delta(.51))
+            }
         }
-    }else if(links$delta == 'log'){
-        fixed_mu = .5 ## acc.to.delta(.75)
-        if(prior.par.original == 'random_scale'){
-            fixed_sd = 4
-        }else{
-            fixed_sd = 1 ## .5 * (acc.to.delta(.99) - acc.to.delta(.51))
-        }
+        priors$delta = list(fixed_mu = rep(fixed_mu, delta.size), fixed_sd = rep(fixed_sd, delta.size))
     }
     if(model == 'metad'){ delta.size = 2 }else{ delta.size = 1 }
-    priors$delta = list(fixed_mu = rep(fixed_mu, delta.size), fixed_sd = rep(fixed_sd, delta.size))
     ## prior for gamma depends on the link function
     if(links$gamma == 'twoparameter'){
         priors$gamma =  list(fixed_mu = c(0, log(unbiased(K)[K / 2 + 1] - unbiased(K)[K / 2])),

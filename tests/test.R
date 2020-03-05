@@ -1,8 +1,26 @@
+## devtools::document('~/cs/code/r/bhsdtr2')
 ## devtools::install('~/cs/code/r/bhsdtr2')
+source('~/cs/code/r/bhsdtr2/tests/utils.R')
 library(bhsdtr2)
 library(rstan)
 gabor$r = with(gabor, combined.response(stim, rating, acc))
 gabor$r2 = with(gabor, combined.response(stim, accuracy = acc))
+
+m = cumulative(r ~ stim + (stim | id), gabor[gabor$duration == '32 ms' & gabor$order == 'DECISION-RATING',])
+plot(m)
+samples(m, 'thr')
+
+## Sprawdzamy samples na poziomie indywidualnym
+(m2 = bhsdtr(c(dprim ~ duration + (duration | id), thr ~ 1 + (1 | id)), r ~ stim,
+             gabor[(gabor$order == 'DECISION-RATING'),],
+             method = 'stan', iter = 2000, warmup = 1000))
+(res = samples(m2, 'dprim'))
+(res = samples(m2, 'thr'))
+
+(m2.jmap = bhsdtr(c(dprim ~ duration + (duration | id), thr ~ 1 + (1 | id)), r ~ stim,
+             gabor[(gabor$order == 'DECISION-RATING'),]))
+
+sdt.acc.plot(m2.jmap, 1)
 
 (m0 = bhsdtr(c(dprim ~ 1 + (1 | id), thr ~ 1 + (1 | id)), r2 ~ stim,
              gabor[(gabor$order == 'DECISION-RATING') & (gabor$duration == '32 ms'),],
@@ -22,63 +40,17 @@ samples(m1.1, 'thr')
 (res = samples(m1.2, 'thr'))
 plot(m1.2)
 
-## Sprawdzamy samples na poziomie indywidualnym
-(m2 = bhsdtr(c(dprim ~ duration + (duration | id), thr ~ 1 + (1 | id)), r ~ stim,
-             gabor[(gabor$order == 'DECISION-RATING'),],
-             method = 'stan'))
-(res = samples(m2, 'dprim'))
-(res = samples(m2, 'thr'))
-
-dprim = samples(m2, 'dprim', group = 1)
-thr = samples(m2, 'thr', group = 1, include.vars = 'duration')
-all(attr(dprim, 'data') == attr(thr, 'data'))
-df = attr(dprim, 'data')
-df$dprim = apply(dprim[,1,], 2, mean)
-df$thr = apply(thr[,4,], 2, mean)
-## T³umaczenie miêdzy indeksem grupy a oryginaln± nazw± poziomu grupy
-gr = unique(data.frame(index = m2$sdata$delta_group_1, original = m2$sdata$delta_group_1_original))
-rownames(gr) = as.character(gr$index)
-df$id.orig = gr[as.character(df$id), 'original']
-df$acc.fit = acc.to.delta(delta = log(df$dprim), crit = df$thr)
-df$acc = NA
-for(i in 1:nrow(df))
-    df$acc[i] = mean(gabor[(gabor$order == 'DECISION-RATING') & gabor$id == df$id.orig[i] & gabor$duration == df$duration[i], 'acc'])
-plot(acc ~ acc.fit, df, main = sprintf('%.2f', cor(df$acc, df$acc.fit)))
-## r = .94
-
-## merging chains
-(m3 = bhsdtr(c(dprim ~ order + (1 | id), thr ~ order + (1 | id)), r ~ stim,
-             gabor[(gabor$duration == '32 ms'),],
-             method = 'stan', chains = 2, iter = 2000, warmup = 1000))
-
-merged.extract = function(m, par, group = NULL){x
-    if(is.null(group)){
-        par.name = sprintf('%s_fixed', par)
-    }else{
-        par.name = sprintf('%s_random_%d', par, group)
-    }
-    size = m$sdata[[sprintf('%s_size', par)]]
-    res1 = extract(m$stanfit, par.name, permute = F)
-    array(res1, c(dim(res1)[1] * dim(res1)[2], size, dim(res1)[3] / size))
-}
-
-res1 = merged.extract(m3, 'gamma', group = 1)
-res2 = extract(m3$stanfit, 'gamma_random_1', permute = F)
-iter = dim(res2)[1]
-size = dim(res1)[2]
-for(chain in 1:(dim(res2)[2])){
-    for(cnd in 1:(dim(res1)[3])){
-        for(d in 1:size)
-            print(table(res1[1:iter + (chain - 1) * iter, d, cnd] == res2[,chain, d + (cnd - 1) * size]))
-    }
-}
-
-plot(m2)
 
 ## Test set.prior
 (m3 = bhsdtr(c(dprim ~ duration + (1 | id), thr ~ duration + (1 | id)), r ~ stim,
              gabor[(gabor$order == 'DECISION-RATING'),],
              method = F))
+
+(m3.p = bhsdtr(c(dprim ~ duration + (1 | id), thr ~ duration + (1 | id)), r ~ stim,
+             gabor[(gabor$order == 'DECISION-RATING'),],
+             method = F, prior = list(delta = list(mu = 123, sd = 321))))
+m3.p$sdata$delta_prior_fixed_mu
+m3.p$sdata$delta_prior_fixed_sd
 
 priors = list(delta = list(mu = 123, sd = 234, scale = list('1' = 321), nu = list('1' = 333)))
 m3.p = set.prior(m3, delta = list(mu = 123, sd = 234, scale = list('1' = 321), nu = list('1' = 333)))
