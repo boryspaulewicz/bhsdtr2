@@ -25,14 +25,15 @@ condition.specific.samples = function(m, par, group = NULL, method = NULL, inclu
     if(!is.null(group))
         data[[group.name]] = group.index
     data = unique(data[, unique(c(group.name, vnames)), drop = F])
-    ## if par ~ 1
+    ## if e.g., dprim ~ 1
     if(nrow(data) == 0)
         data = data.frame(x = '')
-    ## colnames describe unique conditions
+    ## colnames describe unique combinations of predictors
     condition.names = apply(data, 1, function(x)paste(x, collapse = ':'))
     X = model.matrix(fixed.formula, data)
     if(('stan' %in% method) & !is.null(m$stanfit)){
-        samples.fixef = extract(m$stanfit)[[sprintf('%s_fixed', par)]]
+        ## samples.fixef = extract(m$stanfit)[[sprintf('%s_fixed', par)]]
+        samples.fixef = merged.extract(m, par)
     }else if(('jmap' %in% method) & !is.null(m$jmapfit)){
         samples.fixef = array(m$jmapfit$par[grep(sprintf('%s_fixed\\[', par), names(m$jmapfit$par))],
                    dim = c(1, m$sdata[[sprintf('%s_size', par)]], ncol(X)))
@@ -43,7 +44,8 @@ condition.specific.samples = function(m, par, group = NULL, method = NULL, inclu
         random.formula = m$random[[par]][[group]][['model.formula']]
         Z = model.matrix(random.formula, data)
         if(('stan' %in% method) & !is.null(m$stanfit)){
-            samples.ranef = extract(m$stanfit)[[sprintf('%s_random_%d', par, group)]]
+            ## samples.ranef = extract(m$stanfit)[[sprintf('%s_random_%d', par, group)]]
+            samples.ranef = merged.extract(m, par, group) 
         }else if('jmap' %in% method){
             samples.ranef = array(m$jmapfit$par[grep(sprintf('%s_random_%d\\[', par, group), names(m$jmapfit$par))],
                        dim = c(1, m$random[[par]][[group]]$group.size, m$sdata[[sprintf('%s_size', par)]],
@@ -53,18 +55,18 @@ condition.specific.samples = function(m, par, group = NULL, method = NULL, inclu
     ## number of samples, par.size, number of conditions, where condition may include group level
     result = result.ranef =
         array(dim = c(dim(samples.fixef)[1], dim(samples.fixef)[2], nrow(data)))
-    for(s in 1:(dim(samples.fixef)[1])){
+    for(s in 1:(dim(samples.fixef)[1]))
         result[s,,] = samples.fixef[s,,] %*% t(X)
-        if(!is.null(group)){
+    if(!is.null(group)){
+        for(s in 1:(dim(samples.fixef)[1]))
             for(con in 1:nrow(data)){
                 result.ranef[s,,con] =
-                    samples.ranef[s, data[[group.name]][con],,,drop=F] %*% t(Z[con,,drop = F ])
+                    samples.ranef[s, data[[group.name]][con],,,drop = F] %*% t(Z[con,,drop = F])
             }
-            if(m$links[[par]] == 'id_log'){
-                result = result * exp(result.ranef)
-            }else{
-                result = result + result.ranef
-            }
+        if(m$links[[par]] == 'id_log'){
+            result = result * exp(result.ranef)
+        }else{
+            result = result + result.ranef
         }
     }
     dimnames(result)[3] = list(condition.names)

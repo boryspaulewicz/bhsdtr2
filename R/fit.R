@@ -26,6 +26,8 @@ fit = function(m, method = 'jmap',
                jmap_init = 0,
                chains = parallel::detectCores() - 1, iter = max(20000 / chains, 5000), warmup = 2000, init_r = .5,
                sample.prior = F, ...){
+    if(sample.prior)
+        method = 'stan'
     if(method == 'jmap'){
         m$jmapfit = optimizing(stan_model(model_code = m$code), m$sdata, init = jmap_init, ...)
         if(m$jmapfit$return_code != 0)

@@ -16,25 +16,21 @@ default.prior = function(par, len, prior.par, model, links, K){
     }else if(links$delta == 'id_log'){
         fixed_mu = exp(acc.to.delta(.75))
         if(prior.par.original == 'random_scale'){
-            fixed_sd = 6 ## .5 * (acc.to.delta(.99) - acc.to.delta(.51))
+            fixed_sd = 4 ## .5 * (acc.to.delta(.99) - acc.to.delta(.51))
         }else{
             fixed_sd = .5 * (exp(acc.to.delta(.99)) - exp(acc.to.delta(.51)))
         }
     }else if(links$delta == 'log'){
         fixed_mu = .5 ## acc.to.delta(.75)
         if(prior.par.original == 'random_scale'){
-            fixed_sd = 6
+            fixed_sd = 4
         }else{
             fixed_sd = 1 ## .5 * (acc.to.delta(.99) - acc.to.delta(.51))
         }
     }
-    if(model == 'metad'){
-        size = 2
-    }else{
-        size = 1
-    }
-    priors$delta = list(fixed_mu = rep(fixed_mu, size), fixed_sd = rep(fixed_sd, size))
-    ## prior dla gamma zależy od funkcji łączącej
+    if(model == 'metad'){ delta.size = 2 }else{ delta.size = 1 }
+    priors$delta = list(fixed_mu = rep(fixed_mu, delta.size), fixed_sd = rep(fixed_sd, delta.size))
+    ## prior for gamma depends on the link function
     if(links$gamma == 'twoparameter'){
         priors$gamma =  list(fixed_mu = c(0, log(unbiased(K)[K / 2 + 1] - unbiased(K)[K / 2])),
                              fixed_sd = c(priors$eta$fixed_sd, log(2)))

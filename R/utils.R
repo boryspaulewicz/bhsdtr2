@@ -38,6 +38,23 @@ rmatch = function (pattern, vector){
   res
 }
 
+merged.extract = function(m, par, group = NULL){
+    if(is.null(group)){
+        par.name = sprintf('%s_fixed', par)
+    }else{
+        par.name = sprintf('%s_random_%d', par, group)
+        group.size = m$sdata[[sprintf('%s_group_max_%d', par, group)]]
+    }
+    size = m$sdata[[sprintf('%s_size', par)]]
+    res1 = extract(m$stanfit, par.name, permute = F)
+    if(!is.null(group)){
+        res1 = array(res1, c(dim(res1)[1:2], group.size, size, dim(res1)[3] / (group.size * size)))
+        array(res1, c(dim(res1)[1] * dim(res1)[2], group.size, size, dim(res1)[5]))
+    }else{
+        array(res1, c(dim(res1)[1] * dim(res1)[2], size, dim(res1)[3] / size))
+    }
+}
+
 is.separate.intercepts = function(X){
     all(unique(as.vector(X)) %in% 0:1) &
         all((abs(X) %*% rep(1, ncol(X))) == 1)

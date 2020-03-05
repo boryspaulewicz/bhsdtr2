@@ -97,6 +97,7 @@ The fitted object will be stored in the $jmapfit field of the bhsdtr model objec
     for(i in 1:length(model_formulae)){
         ## fixed effects formula
         fixed.formula = lme4::nobars(model_formulae[[i]])
+        ## delta, gamma, ...
         pars = c(pars, as.character(fixed.formula[[2]]))
         ## dprim -> delta, etc
         par = par.to.linked(as.character(fixed.formula[[2]]))
@@ -129,6 +130,7 @@ The fitted object will be stored in the $jmapfit field of the bhsdtr model objec
         }
     }
     vnames = unique(vnames)
+    ## inferring model type
     if(setequal(pars, c('dprim', 'thr', 'sdratio'))){
         model = 'uvsdt'
     }else if(setequal(pars, c('dprim', 'thr'))){
@@ -160,14 +162,15 @@ The fitted object will be stored in the $jmapfit field of the bhsdtr model objec
         ## resp ~ 1)
         resp.stim.vars$stim = rep(1, nrow(resp.stim.model.frame))
     }
-    ## Agreggation
     K = max(resp.stim.vars$resp, na.rm = T)
-    ## Only the relevant variables without the response and the
-    ## stimulus variables. If there is only one variable, we have to
-    ## make sure data does not become a vector.
+    ## Agreggation: only the relevant variables without the response
+    ## and the stimulus variables. If there is only one variable, we
+    ## have to make sure data does not become a vector.
     data = data[, vnames, drop = F]
     res = aggregate.data(data, resp.stim.vars, K)
     adata = res$adata
+    ## checking if the link functions are valid, inferring the default
+    ## link functions for omitted parameters
     links = fill.model.links(model, fixed, random, links, adata$data, K)
     ## Creatinng data structures and model code for stan
     sdata = list(N = nrow(adata$data), K = K, Kb2 = round(K / 2), PRINT = 0,
@@ -179,15 +182,7 @@ The fitted object will be stored in the $jmapfit field of the bhsdtr model objec
     sdata = sdata.matrices(sdata, adata, fixed, random, model, links, force.id_log)
     if(model == 'ordinal')
         sdata$eta_is_fixed[1,1] = 1
-    ## ## Model code
-    ## par_types = unique(names(fixed), names(random))
-    ## parsed = parse.PAR(readLines(stan.file('ordinal_template.stan')), par_types)
-    ## parsed = parse.likelihood(parsed, model)
-    ## parsed = parse.random(parsed, random, par_types)
-    ## for(par in names(links))
-    ##     parsed = parse.link(parsed, par, links[[par]])
-    ##
-    ## bhsdtr object
+    ## bhsdtr_model object
     m = list(fixed = fixed, random = random,
              adata = adata, sdata = sdata, data_size = nrow(data),
              model = model, links = links,
@@ -199,6 +194,7 @@ The fitted object will be stored in the $jmapfit field of the bhsdtr model objec
     m
 }
 
+## data structures required by the model
 sdata.matrices = function(sdata, adata, fixed, random, model, links, force.id_log = F){
     ## Fixed effects' model matrices
     for(par in names(fixed)){
@@ -218,7 +214,7 @@ sdata.matrices = function(sdata, adata, fixed, random, model, links, force.id_lo
     }
     ## Random effects' model matrices
     for(par in names(random)){
-        Z = g = list()
+        Z = g = g.original = list()
         Z_ncol = g_max = NULL
         for(i in 1:length(random[[par]])){
             Z[[i]] = model.matrix(random[[par]][[i]]$model.formula, adata$data)
@@ -232,6 +228,7 @@ sdata.matrices = function(sdata, adata, fixed, random, model, links, force.id_lo
             ## group indicator variable
             mf = model.frame(random[[par]][[i]]$group.formula, adata$data)
             if(ncol(mf) == 1){
+                g.original[[i]] = mf[, 1]
                 g[[i]] = fix.index.gaps(mf[, 1], names(mf)[1], T)
                 g_max = c(g_max, max(g[[i]]))
             }else{
@@ -245,6 +242,7 @@ sdata.matrices = function(sdata, adata, fixed, random, model, links, force.id_lo
         for(i in 1:length(Z)){
             sdata[[sprintf('%s_group_max_%d', par, i)]] = g_max[i]
             sdata[[sprintf('%s_group_%d', par, i)]] = g[[i]]
+            sdata[[sprintf('%s_group_%d_original', par, i)]] = g.original[[i]]
             sdata[[sprintf('Z_%s_%d', par, i)]] = Z[[i]]
             sdata[[sprintf('Z_%s_ncol_%d', par, i)]] = Z_ncol[i]
             ## scale and nu priors
@@ -304,23 +302,10 @@ fill.model.links = function(model, fixed, random, links, data, K){
                      delta = c('log', 'id_log', 'identity'),
                      theta = c('log'),
                      eta = c('identity'))
-    ## delta.separate.intercepts = T
-    ## if(!is.null(fixed$delta))
-    ##     delta.separate.intercepts = delta.separate.intercepts &
-    ##         is.separate.intercepts(model.matrix(fixed$delta, data))
-    ## if(!is.null(random$delta))
-    ##     for(g in 1:length(random$delta))
-    ##             delta.separate.intercepts = delta.separate.intercepts &
-    ##                 is.separate.intercepts(model.matrix(random$delta[[g]]$model.formula, data))
-    ## if(delta.separate.intercepts){
-    ##     par_links$delta = c('id_log', 'log', 'identity')
-    ## }else{
-    ##     par_links$delta = c('log', 'identity', 'id_log')
-    ## }
     for(par in names(links))
         if(!(links[[par]] %in% par_links[[par]]))
             stop(sprintf('Link %s not allowed for %s', links[[par]], par))
-    ## Zwracamy uzupełnioną listę links
+    ## Fill the missing fields in the links list
     for(par in model_pars[[model]])
         if(!(par %in% names(links)))
             links[[par]] = par_links[[par]][1]
@@ -328,7 +313,7 @@ fill.model.links = function(model, fixed, random, links, data, K){
 }
 ## Ok
 
-## parameter dimensionality
+## parameter dimensionality (pre-link and post-link)
 par.size = function(par, model, links, K){
     if(par == 'gamma'){
         if(links$gamma %in% c('twoparameter', 'parsimonious')){

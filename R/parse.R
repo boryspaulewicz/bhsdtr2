@@ -169,9 +169,10 @@ make.model.code = function(model, fixed, random, links, only_prior = F){
     code = add.strings(code, '\n  }\n}\n\n')
     ## model
     code = add.strings(code, 'model {\n')
+    ## fixed effects' priors
     for(par in names(fixed)){
         if(links[[par]] == 'id_log'){
-            prior = ' ~ normal(PAR_prior_fixed_mu[i, j], PAR_prior_fixed_sd[i, j])T[0,];\n'
+            prior = ' ~ normal(PAR_prior_fixed_mu[i, j], PAR_prior_fixed_sd[i, j]) T[0,];\n'
         }else{
             prior = ' ~ normal(PAR_prior_fixed_mu[i, j], PAR_prior_fixed_sd[i, j]);\n'
         }
@@ -188,7 +189,7 @@ make.model.code = function(model, fixed, random, links, only_prior = F){
 '  // PAR random effects
   for(i in 1:PAR_size)
     for(j in 1:Z_PAR_ncol_G)
-      PAR_sd_G[i, j] ~ cauchy(0, PAR_prior_scale_G[i, j]);
+      PAR_sd_G[i, j] ~ cauchy(0, PAR_prior_scale_G[i, j]) T[0,];
   L_corr_PAR_G ~ lkj_corr_cholesky(PAR_prior_nu_G);
   for(g in 1:PAR_group_max_G)
     PAR_z_G[g] ~ normal(0, 1);\n')
@@ -219,67 +220,4 @@ stan.template = function(fname){
 
 stan.file = function(fname){
     sprintf('%s/stan_templates/%s', path.package('bhsdtr2'), fname)
-}
-
-######################################################################
-## not used anymore
-
-## Parsing functions (model code from template)
-parse.PAR = function(lines, par_types){
-    parsed = NULL
-    for(l in lines){
-        if(rmatch('PAR', l)){
-            for(par_type in par_types)
-                parsed[length(parsed) + 1] = gsub('PAR', par_type, l)
-        }else{
-            parsed = c(parsed, l)
-        }
-    }
-    parsed
-}
-
-parse.likelihood = function(lines, model){
-    parsed = NULL
-    for(l in lines){
-        if(rmatch('//likelihood', l)){
-            parsed = c(parsed, readLines(stan.file(sprintf('likelihood_%s.stan', model))))
-        }else{
-            parsed = c(parsed, l)
-        }
-    }
-    parsed
-}
-
-parse.link = function(lines, par, link){
-    parsed = NULL
-    for(l in lines){
-        if(rmatch(sprintf('//%s-link', par), l)){
-            parsed = c(parsed, readLines(stan.file(sprintf('%s_link_%s.stan', par, link))))
-        }else{
-            parsed = c(parsed, l)
-        }
-    }
-    parsed
-}
-
-parse.random = function(lines, random, par_types){
-    parsed = NULL
-    for(part in lines){## If this is part of the random effects' specification ...
-        if(rmatch(sprintf('//random-(%s)', paste(par_types, collapse = '|')), part)){
-            ## ... and there are random effects in the model ...
-            if(length(random) > 0)
-                for(par in names(random)){
-                    for(g in 1:length(random[[par]])){
-                        if(!is.null(random[[par]][[g]]) & rmatch(sprintf('//random-%s', par), part))
-                            parsed[length(parsed) + 1] = gsub('%', g, part)
-                    }
-                }
-        }else{
-            ## If this is not a part of random effects structure then do not change it
-            parsed = c(parsed, part)
-        }
-        ## if there are no random effects in the model and the
-        ## template part defines part of the random effects structure then ignore this part
-    }
-    parsed
 }

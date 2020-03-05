@@ -6,8 +6,8 @@
 #'     be greater than 0 and lower than 1.
 #' @param delta default is NULL, if provided the delta values will be
 #'     converted to accuracy
-#' @param crit the position of the main decision criterion relative to
-#'     the midpoint between the evidence distribution means
+#' @param crit main decision criterion relative to the midpoint
+#'     between the evidence distribution means
 #' @return delta = log(d') or expected accuracy
 #' @export
 acc.to.delta = function(acc = .75, delta = NULL, crit = 0){
