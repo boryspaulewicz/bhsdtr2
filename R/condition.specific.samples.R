@@ -13,6 +13,15 @@ condition.specific.samples = function(m, par, group = NULL, method = NULL, inclu
             stop('This model was not fitted')
         }
     }
+    if(method == 'stan'){
+        slot = 'stanfit'
+    }else if(method == 'jmap'){
+        slot = 'jmapfit'
+    }else if(method == 'prior'){
+        slot = 'stanfit.prior'
+        if(is.null(m$stanfit.prior))
+            stop('Prior was not sampled for this model')
+    }
     fixed.formula = m$fixed[[par]]
     vnames = unique(c(names(get_all_vars(fixed.formula, m$adata$data)), include))
     if(!is.null(group)){
@@ -35,11 +44,11 @@ condition.specific.samples = function(m, par, group = NULL, method = NULL, inclu
     ## colnames describe unique combinations of predictors
     condition.names = apply(data, 1, function(x)paste(x, collapse = ':'))
     X = model.matrix(fixed.formula, data)
-    if(('stan' %in% method) & !is.null(m$stanfit)){
-        ## samples.fixef = extract(m$stanfit)[[sprintf('%s_fixed', par)]]
+    if(('stan' %in% method) & !is.null(m[[slot]])){
+        ## samples.fixef = extract(m[[slot]])[[sprintf('%s_fixed', par)]]
         samples.fixef = merged.extract(m, par)
-    }else if(('jmap' %in% method) & !is.null(m$jmapfit)){
-        samples.fixef = array(m$jmapfit$par[grep(sprintf('%s_fixed\\[', par), names(m$jmapfit$par))],
+    }else if(('jmap' %in% method) & !is.null(m[[slot]])){
+        samples.fixef = array(m[[slot]]$par[grep(sprintf('%s_fixed\\[', par), names(m[[slot]]$par))],
                    dim = c(1, m$sdata[[sprintf('%s_size', par)]], ncol(X)))
     }else{
         stop(sprintf('This model was not fitted using method %s', paste(method, collapse = ' nor ')))
@@ -47,11 +56,11 @@ condition.specific.samples = function(m, par, group = NULL, method = NULL, inclu
     if(!is.null(group)){
         random.formula = m$random[[par]][[group]][['model.formula']]
         Z = model.matrix(random.formula, data)
-        if(('stan' %in% method) & !is.null(m$stanfit)){
-            ## samples.ranef = extract(m$stanfit)[[sprintf('%s_random_%d', par, group)]]
+        if(('stan' %in% method) & !is.null(m[[slot]])){
+            ## samples.ranef = extract(m[[slot]])[[sprintf('%s_random_%d', par, group)]]
             samples.ranef = merged.extract(m, par, group) 
         }else if('jmap' %in% method){
-            samples.ranef = array(m$jmapfit$par[grep(sprintf('%s_random_%d\\[', par, group), names(m$jmapfit$par))],
+            samples.ranef = array(m[[slot]]$par[grep(sprintf('%s_random_%d\\[', par, group), names(m[[slot]]$par))],
                        dim = c(1, m$random[[par]][[group]]$group.size, m$sdata[[sprintf('%s_size', par)]],
                                ncol(X)))
         }

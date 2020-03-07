@@ -41,16 +41,19 @@ make.model.code = function(model, fixed, random, links, only_prior = F){
   int<lower=1> Z_PAR_ncol_G;
   row_vector[Z_PAR_ncol_G] Z_PAR_G[N];
   // PAR random effects priors
-  real<lower=1> PAR_prior_nu_G;
-  row_vector<lower=0>[Z_PAR_ncol_G] PAR_prior_scale_G[PAR_size];\n')
+  real<lower=1> PAR_prior_random_nu_G;
+  row_vector<lower=0>[Z_PAR_ncol_G] PAR_prior_random_scale_G[PAR_size];\n')
         code = add.strings(code, gsub('G', g, part))
     }
-    code = add.strings(code, '}\n\n')
     ## parameters block
-    code = add.strings(code, 'parameters {
+    code = add.strings(code, '}\n\nparameters {
   // Fixed effects\n')
-    for(par in names(fixed))
-        code = add.strings(code, gsub('PAR', par, '  matrix[PAR_size, X_PAR_ncol] PAR_fixed;\n'))
+    for(par in names(fixed)){
+        restr = ''
+        if(links[[par]] == 'id_log')
+            restr = '<lower=0>'
+        code = add.strings(code, gsub('PAR', par, sprintf('  matrix%s[PAR_size, X_PAR_ncol] PAR_fixed;\n', restr)))
+    }
     for(par in names(random))
         for(g in 1:length(random[[par]])){
             part = gsub('PAR', par,
@@ -60,9 +63,8 @@ make.model.code = function(model, fixed, random, links, only_prior = F){
   vector[PAR_size * Z_PAR_ncol_G] PAR_z_G[PAR_group_max_G];\n')
             code = add.strings(code, gsub('G', g, part))
         }
-    code = add.strings(code, '}\n\n')
     ## transformed parameters block
-    code = add.strings(code, 'transformed parameters {\n')
+    code = add.strings(code, '}\n\ntransformed parameters {\n')
     for(par in pars)
         code = add.strings(code, gsub('PAR', par,
 '  // PAR fixed effects with possibly fixed values
@@ -133,6 +135,7 @@ make.model.code = function(model, fixed, random, links, only_prior = F){
     code = add.strings(code, '    // inverse link function\n')
     for(par in pars)
         if(par == 'gamma'){
+            ## gamma parameters are link-transformed after adding the random effects, if any
             if(is.null(random[['gamma']])){
                 part = '    gamma = gamma_fixef;\n'
             }else{
@@ -166,9 +169,8 @@ make.model.code = function(model, fixed, random, links, only_prior = F){
         }
     ## likelihood
     code = add.strings(code, stan.template(sprintf('likelihood_%s.stan', model)))
-    code = add.strings(code, '\n  }\n}\n\n')
     ## model
-    code = add.strings(code, 'model {\n')
+    code = add.strings(code, '\n  }\n}\n\nmodel {\n')
     ## fixed effects' priors
     for(par in names(fixed)){
         if(links[[par]] == 'id_log'){
@@ -189,8 +191,8 @@ make.model.code = function(model, fixed, random, links, only_prior = F){
 '  // PAR random effects
   for(i in 1:PAR_size)
     for(j in 1:Z_PAR_ncol_G)
-      PAR_sd_G[i, j] ~ cauchy(0, PAR_prior_scale_G[i, j]) T[0,];
-  L_corr_PAR_G ~ lkj_corr_cholesky(PAR_prior_nu_G);
+      PAR_sd_G[i, j] ~ cauchy(0, PAR_prior_random_scale_G[i, j]) T[0,];
+  L_corr_PAR_G ~ lkj_corr_cholesky(PAR_prior_random_nu_G);
   for(g in 1:PAR_group_max_G)
     PAR_z_G[g] ~ normal(0, 1);\n')
             code = add.strings(code, gsub('G', g, part))

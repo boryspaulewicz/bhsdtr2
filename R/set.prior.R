@@ -29,20 +29,20 @@ set.prior = function(model, ...){
             if(!(par.type %in% c('delta', 'gamma', 'eta', 'theta')))
                 stop(sprintf('%s is not a valid parameter name', par.type))
             for(par in names(args[[par.type]])){
-                if(!(par %in% c('mu', 'sd', 'scale', 'nu')))
+                if(!(par %in% c('mu', 'sd', 'lb', 'ub', 'scale', 'nu', 'scale_lb', 'scale_ub')))
                     stop(sprintf('%s %s is not a prior parameter', par.type, par))
-                if(par == 'scale'){
+                if(par %in% c('scale', 'scale_lb', 'scale_ub')){
                     for(g in names(args[[par.type]][[par]])){
-                        par.name = sprintf('%s_prior_scale_%s', par.type, g)
+                        par.name = sprintf('%s_prior_%s_%s', par.type, par, g)
                         if(!(par.name %in% names(model$sdata)))
                             stop(sprintf('%s parameter does not exist', par.name))
                         model$sdata[[par.name]] = matrix(args[[par.type]][[par]][[g]],
-                                                         nrow = nrow(model$sdata[[par.name]]),
-                                                         ncol = ncol(model$sdata[[par.name]]))
+                                                         nrow = nrow(model$sdata[[sprintf('%s_size', par.type)]]),
+                                                         ncol = ncol(model$sdata[[sprintf('Z_%s_ncol_%d', par.type, g)]]))
                     }
                 }else if(par == 'nu'){
                     for(g in names(args[[par.type]][[par]])){
-                        par.name = sprintf('%s_prior_nu_%s', par.type, g)
+                        par.name = sprintf('%s_prior_random_nu_%s', par.type, g)
                         if(!(par.name %in% names(model$sdata)))
                             stop(sprintf('%s parameter does not exist', par.name))
                         model$sdata[[par.name]] = args[[par.type]][[par]][[g]][1]

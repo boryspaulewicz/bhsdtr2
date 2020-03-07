@@ -1,6 +1,6 @@
 ## -*- coding: utf-8 -*-
 
-## len is the number of columns of the prior matrix
+## len is the number of columns of the prior matrix, e.g., par == 'delta', prior.par == 'fixed_mu'
 default.prior = function(par, len, prior.par, model, links, K){
     prior.par.original = prior.par
     if(prior.par == 'random_scale')
@@ -8,8 +8,15 @@ default.prior = function(par, len, prior.par, model, links, K){
     unb = unbiased(K)
     Kb2 = round(K / 2)
     priors = list(theta = list(fixed_mu = 0, fixed_sd = log(1.5)),
-                  eta = list(fixed_mu = 0, fixed_sd = 3))
-    ## prior dla delta zależy od modelu i funkcji łączącej
+                  eta = list(fixed_mu = 0, fixed_sd = 3),
+                  delta = list(), gamma = list())
+    priors[[par]][['random_nu']] = 1
+    priors[[par]][['fixed_lb']] = priors[[par]][['fixed_ub']] = priors[[par]][['random_scale_lb']] = priors[[par]][['random_scale_ub']] = ''
+    if(par == 'delta')
+        if(links$delta == 'id_log')
+            priors$delta$lb = '0'
+    ## prior for delta depends on the model (sdt, metad) and the link
+    ## function
     if('delta' %in% names(links)){
         if(links$delta == 'identity'){
             fixed_mu = exp(acc.to.delta(.75))
@@ -29,18 +36,22 @@ default.prior = function(par, len, prior.par, model, links, K){
                 fixed_sd = 1 ## .5 * (acc.to.delta(.99) - acc.to.delta(.51))
             }
         }
-        priors$delta = list(fixed_mu = rep(fixed_mu, delta.size), fixed_sd = rep(fixed_sd, delta.size))
+        priors$delta$fixed_mu = fixed_mu
+        priors$delta$fixed_sd = fixed_sd
+        if(model == 'metad')
+            for(prior.par in names(priors$delta))
+                priors$delta[[prior.par]] = rep(priors$delta[[prior.par]], 2)
     }
-    if(model == 'metad'){ delta.size = 2 }else{ delta.size = 1 }
     ## prior for gamma depends on the link function
     if(links$gamma == 'twoparameter'){
-        priors$gamma =  list(fixed_mu = c(0, log(unbiased(K)[K / 2 + 1] - unbiased(K)[K / 2])),
-                             fixed_sd = c(priors$eta$fixed_sd, log(2)))
+        priors$gamma$fixed_mu = c(0, log(unbiased(K)[K / 2 + 1] - unbiased(K)[K / 2]))
+        priors$gamma$fixed_sd = c(priors$eta$fixed_sd, log(2))
     }else if(links$gamma == 'parsimonious'){
-        priors$gamma =  list(fixed_mu = c(0, log(1)),
-                             fixed_sd = c(priors$eta$fixed_sd, log(2)))
+        priors$gamma$fixed_mu = c(0, log(1))
+        priors$gamma$fixed_sd = c(priors$eta$fixed_sd, log(2))
     }else if(links$gamma == 'softmax'){
-        priors$gamma = list(fixed_mu = rep(0, K - 1), fixed_sd = rep(log(100), K - 1))
+        priors$gamma$fixed_mu = rep(0, K - 1)
+        priors$gamma$fixed_sd = rep(log(100), K - 1)
     }else if(links$gamma == 'log_distance'){
         res.mu = rep(0, K - 1)
         if(K > (Kb2 + 1))
@@ -51,7 +62,8 @@ default.prior = function(par, len, prior.par, model, links, K){
                 res.mu[k] = log(unb[k + 1] - unb[k])
         res.sd = rep(log(2), K - 1)
         res.sd[Kb2] = priors$eta$fixed_sd
-        priors$gamma = list(fixed_mu = res.mu, fixed_sd = res.sd)
+        priors$gamma$fixed_mu = res.mu
+        priors$gamma$fixed_sd = res.sd
     }else if(links$gamma == 'log_ratio'){
         res.mu = rep(0, K - 1)
         res.sd = rep(log(2), K - 1)
@@ -65,7 +77,8 @@ default.prior = function(par, len, prior.par, model, links, K){
         if((Kb2 - 2) > 0)
             for(k in (Kb2 - 2):1)
                 res.mu[k] = log((unb[k + 1] - unb[k]) / (unb[k + 1] - unb[k]))
-        priors$gamma = list(fixed_mu = res.mu, fixed_sd = res.sd)
+        priors$gamma$fixed_mu = res.mu
+        priors$gamma$fixed_sd = res.sd
     }else{
         stop(sprintf('Unknown gamma link %s', links$gamma))
     }

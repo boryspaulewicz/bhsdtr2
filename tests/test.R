@@ -1,19 +1,20 @@
-## devtools::document('~/cs/code/r/bhsdtr2')
 ## devtools::install('~/cs/code/r/bhsdtr2')
+## devtools::document('~/cs/code/r/bhsdtr2')
 source('~/cs/code/r/bhsdtr2/tests/utils.R')
 library(bhsdtr2)
 library(rstan)
 gabor$r = with(gabor, combined.response(stim, rating, acc))
 gabor$r2 = with(gabor, combined.response(stim, accuracy = acc))
 
-m = cumulative(r ~ stim + (stim | id), gabor[gabor$duration == '32 ms' & gabor$order == 'DECISION-RATING',])
+m = cumulative(r ~ stim + (stim | id),
+               gabor[gabor$duration == '32 ms' & gabor$order == 'DECISION-RATING',])
 plot(m)
 samples(m, 'thr')
 
 ## Sprawdzamy samples na poziomie indywidualnym
 (m2 = bhsdtr(c(dprim ~ duration + (duration | id), thr ~ 1 + (1 | id)), r ~ stim,
              gabor[(gabor$order == 'DECISION-RATING'),],
-             method = 'stan', iter = 2000, warmup = 1000))
+             sample.prior = T, iter = 2000, warmup = 1000))
 (res = samples(m2, 'dprim'))
 (res = samples(m2, 'thr'))
 

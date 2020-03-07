@@ -86,7 +86,7 @@
 ##' @export
 bhsdtr = function(model_formulae, response_formula, data,
                   links = list(gamma = 'log_distance'), method = 'jmap',
-                  prior = list(), thresholds_scale = 2, force.id_log = F, ...){
+                  prior = list(), sample.prior = F, thresholds_scale = 2, force.id_log = F, ...){
     if(method == 'ml'){
         method = 'jmap'
         stop('method = \'ml\' is no longer a valid argument, use method = \'jmap\' instead.
@@ -198,7 +198,11 @@ The fitted object will be stored in the $jmapfit field of the bhsdtr model objec
         prior$model = m
         m = do.call(set.prior, prior)
     }
-    if(method %in% c('jmap', 'stan'))
+    if(sample.prior){
+        method = 'stan'
+        m = fit(m, method, ...)
+        m = fit(m, method, sample.prior = T, ...)
+    }else if(method %in% c('jmap', 'stan'))
         m = fit(m, method, ...)
     m
 }
@@ -255,8 +259,8 @@ sdata.matrices = function(sdata, adata, fixed, random, model, links, force.id_lo
             sdata[[sprintf('Z_%s_%d', par, i)]] = Z[[i]]
             sdata[[sprintf('Z_%s_ncol_%d', par, i)]] = Z_ncol[i]
             ## scale and nu priors
-            sdata[[sprintf('%s_prior_nu_%d', par, i)]] = 1
-            sdata[[sprintf('%s_prior_scale_%d', par, i)]] = default.prior(par, Z_ncol[i], 'random_scale', model, links, sdata$K)
+            sdata[[sprintf('%s_prior_random_nu_%d', par, i)]] = 1
+            sdata[[sprintf('%s_prior_random_scale_%d', par, i)]] = default.prior(par, Z_ncol[i], 'random_scale', model, links, sdata$K)
         }
     }
     ## Parameter matrix dimensions for par and par_ = link(par)

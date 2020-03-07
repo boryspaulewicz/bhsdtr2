@@ -17,7 +17,8 @@
 ##'     - 1, mean = 1, sdratio = 1), and C is the number of unique
 ##'     combinations of values of predictors for the given parameter.
 ##' @export
-samples = function(m, par, group = NULL, ...){
+samples = function(m, par, group = NULL, prior = F, ...){
+    ## e.g., dprim -> delta
     par2 = par.to.linked(par)
     invlink = F
     ## e.g., if par = 'dprim'
@@ -29,7 +30,20 @@ samples = function(m, par, group = NULL, ...){
         ## no conversion (e.g., par = 'delta')
         fun = function(x, ...)x
     }
-    result = condition.specific.samples(m, par2, group, ...)
+    if(prior){
+        if(!is.null(group))
+            stop('Prior samples for group specific estimates are not yet implemented')
+        result = array(NA, c(prod(dim(stanfit)[1:2]), dim(m$sdata[[sprintf('%_prior_fixed_mu', par2)]])))
+        for(i in 1:(dim(result)[2]))
+            for(j in 1:(dim(result)[3]))
+                result[,i,j] = rnorm(dim(result)[1], m$sdata[[sprintf('%_prior_fixed_mu', par2)]][i, j],
+                               m$sdata[[sprintf('%_prior_fixed_sd', par2)]][i, j])
+        if(par2 == 'delta')
+            if(m$links$delta == 'id_log')
+                stop('Sampling truncated normal not yet implemented')
+    }else{
+        result = condition.specific.samples(m, par2, group, ...)
+    }
     ## par2_size_ because e.g., gamma_size_ > gamma_size when link = 'parsimonious' or 'twoparameter'
     result_ = array(dim = c(dim(result)[1], m$sdata[[sprintf('%s_size_', par2)]], dim(result)[3]))
     ## i is condition number
