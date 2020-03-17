@@ -258,8 +258,11 @@ sdata.matrices = function(sdata, adata, fixed, random, model, links, force.id_lo
             sdata[[sprintf('%s_group_%d_original', par, i)]] = g.original[[i]]
             sdata[[sprintf('Z_%s_%d', par, i)]] = Z[[i]]
             sdata[[sprintf('Z_%s_ncol_%d', par, i)]] = Z_ncol[i]
+            sdata[[sprintf('zeros_%s_%d', par, i)]] = fix.stan.dim(rep(0, par.size(par, model, links, sdata$K)[1] * Z_ncol[i]))
             ## scale and nu priors
             sdata[[sprintf('%s_prior_random_nu_%d', par, i)]] = 1
+            sdata[[sprintf('%s_prior_random_sd_lb_%d', par, i)]] = 0
+            sdata[[sprintf('%s_prior_random_sd_ub_%d', par, i)]] = NA
             sdata[[sprintf('%s_prior_random_scale_%d', par, i)]] = default.prior(par, Z_ncol[i], 'random_scale', model, links, sdata$K)
         }
     }

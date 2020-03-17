@@ -37,3 +37,4 @@ sdt.acc.plot = function(model, group = NULL){
     p = p + labs(title = sprintf('r = %.2f', cor(df[[acc.obs]], df[[acc.fit]])), x = 'Predicted accuracy', y = 'Observed accuracy')
     p
 }
+

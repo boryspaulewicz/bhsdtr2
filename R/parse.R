@@ -13,14 +13,14 @@ make.model.code = function(model, fixed, random, links, only_prior = F){
   int<lower=1> Kb2;
   int<lower=0> counts[N, K];\n'
     if(links$gamma == 'parsimonious'){
-        code = add.strings(code, '  vector[K-1] unbiased;\n')
+        code = adds(code, '  vector[K-1] unbiased;\n')
     }else if(links$gamma == 'softmax'){
-        code = add.strings(code, '  real thresholds_scale;\n')
+        code = adds(code, '  real thresholds_scale;\n')
     }
     if(model %in% c('sdt', 'uvsdt', 'metad'))
-        code = add.strings(code, '  vector[N] stim_sign;\n')
+        code = adds(code, '  vector[N] stim_sign;\n')
     for(par in pars){
-        code = add.strings(code, gsub('PAR', par,
+        code = adds(code, gsub('PAR', par,
 '  int<lower=1> PAR_size;
   int<lower=1> PAR_size_;
   // Fixed effects matrices
@@ -39,20 +39,21 @@ make.model.code = function(model, fixed, random, links, only_prior = F){
   int<lower=1> PAR_group_max_G;
   int<lower=1,upper=PAR_group_max_G> PAR_group_G[N];
   int<lower=1> Z_PAR_ncol_G;
+  // vector[PAR_size * Z_PAR_ncol_G] zeros_PAR_G;
   row_vector[Z_PAR_ncol_G] Z_PAR_G[N];
   // PAR random effects priors
   real<lower=1> PAR_prior_random_nu_G;
   row_vector<lower=0>[Z_PAR_ncol_G] PAR_prior_random_scale_G[PAR_size];\n')
-        code = add.strings(code, gsub('G', g, part))
+        code = adds(code, gsub('G', g, part))
     }
     ## parameters block
-    code = add.strings(code, '}\n\nparameters {
+    code = adds(code, '}\n\nparameters {
   // Fixed effects\n')
     for(par in names(fixed)){
         restr = ''
         if(links[[par]] == 'id_log')
             restr = '<lower=0>'
-        code = add.strings(code, gsub('PAR', par, sprintf('  matrix%s[PAR_size, X_PAR_ncol] PAR_fixed;\n', restr)))
+        code = adds(code, gsub('PAR', par, sprintf('  matrix%s[PAR_size, X_PAR_ncol] PAR_fixed;\n', restr)))
     }
     for(par in names(random))
         for(g in 1:length(random[[par]])){
@@ -61,12 +62,14 @@ make.model.code = function(model, fixed, random, links, only_prior = F){
   cholesky_factor_corr[PAR_size * Z_PAR_ncol_G] L_corr_PAR_G;
   row_vector<lower=0>[Z_PAR_ncol_G] PAR_sd_G[PAR_size];
   vector[PAR_size * Z_PAR_ncol_G] PAR_z_G[PAR_group_max_G];\n')
-            code = add.strings(code, gsub('G', g, part))
+##  vector[PAR_size * Z_PAR_ncol_G] PAR_random_G_v[PAR_group_max_G];\n')
+##  vector[PAR_size * Z_PAR_ncol_G] PAR_z_G[PAR_group_max_G];\n')
+            code = adds(code, gsub('G', g, part))
         }
     ## transformed parameters block
-    code = add.strings(code, '}\n\ntransformed parameters {\n')
+    code = adds(code, '}\n\ntransformed parameters {\n')
     for(par in pars)
-        code = add.strings(code, gsub('PAR', par,
+        code = adds(code, gsub('PAR', par,
 '  // PAR fixed effects with possibly fixed values
   matrix[PAR_size, X_PAR_ncol] PAR_fixed_;\n'))
     for(par in names(random))
@@ -75,26 +78,26 @@ make.model.code = function(model, fixed, random, links, only_prior = F){
 '  // PAR random effects
   matrix[PAR_size, Z_PAR_ncol_G] PAR_random_G[PAR_group_max_G];
   // vectorized matrix of PAR random effects\' standard deviations
-  vector<lower=0>[PAR_size * Z_PAR_ncol_G] PAR_sd_G_;
+  vector<lower=0>[PAR_size * Z_PAR_ncol_G] PAR_sd_G_v;
   matrix[PAR_size * Z_PAR_ncol_G, PAR_size * Z_PAR_ncol_G] corr_PAR_G;\n')
-            code = add.strings(code, gsub('G', g, part))
+            code = adds(code, gsub('G', g, part))
         }
     for(par in pars)
-        code = add.strings(code, gsub('PAR', par,
+        code = adds(code, gsub('PAR', par,
 '  vector[PAR_size] PAR_fixef;
   vector[PAR_size] PAR;
   vector[PAR_size_] PAR_; // = invlink(PAR)\n'))
     for(par in names(random))
-        code = add.strings(code, gsub('PAR', par, '  vector[PAR_size] PAR_ranef;\n'))
-    code = add.strings(code,
+        code = adds(code, gsub('PAR', par, '  vector[PAR_size] PAR_ranef;\n'))
+    code = adds(code,
 '  vector[K + 1] multinomial_cum;
   vector[K] multinomial_p[N];\n')
     if(model %in% c('sdt', 'uvsdt', 'metad'))
-        code = add.strings(code, '  real shift;\n')
+        code = adds(code, '  real shift;\n')
     if(model == 'metad')
-        code = add.strings(code, '  vector[2] normalization;\n')
+        code = adds(code, '  vector[2] normalization;\n')
     for(par in names(fixed))
-        code = add.strings(code, gsub('PAR', par,
+        code = adds(code, gsub('PAR', par,
 '  // Fixing PAR fixed effects if requested
   for(i in 1:PAR_size)
     for(j in 1:X_PAR_ncol)
@@ -107,32 +110,35 @@ make.model.code = function(model, fixed, random, links, only_prior = F){
         for(g in 1:length(random[[par]])){
             part = gsub('PAR', par,
 '  // PAR random effects
-  corr_PAR_G = L_corr_PAR_G * L_corr_PAR_G\';
+  // corr_PAR_G = L_corr_PAR_G * L_corr_PAR_G\';
+  corr_PAR_G = multiply_lower_tri_self_transpose(L_corr_PAR_G);
   // vectorization PAR of random effects\' sd matrices, column major order
   for(i in 1:PAR_size)
     for(j in 1:Z_PAR_ncol_G)
-      PAR_sd_G_[i + (j - 1) * PAR_size] = PAR_sd_G[i, j];
+      PAR_sd_G_v[i + (j - 1) * PAR_size] = PAR_sd_G[i, j];
   for(g in 1:PAR_group_max_G)
-    PAR_random_G[g] = to_matrix(diag_pre_multiply(PAR_sd_G_, L_corr_PAR_G) * PAR_z_G[g], PAR_size, Z_PAR_ncol_G);\n')
-            code = add.strings(code, gsub('G', g, part))
+    PAR_random_G[g] = to_matrix(diag_pre_multiply(PAR_sd_G_v, L_corr_PAR_G) * PAR_z_G[g], PAR_size, Z_PAR_ncol_G);\n')
+    ## PAR_random_G[g] = to_matrix(PAR_random_G_v[g], PAR_size, Z_PAR_ncol_G);\n')
+    ## PAR_random_G[g] = to_matrix(diag_pre_multiply(PAR_sd_G_v, L_corr_PAR_G) * PAR_z_G[g], PAR_size, Z_PAR_ncol_G);\n')
+            code = adds(code, gsub('G', g, part))
         }
-    code = add.strings(code, '  for(n in 1:N){\n')
+    code = adds(code, '  for(n in 1:N){\n')
     for(par in names(fixed))
-        code = add.strings(code, gsub('PAR', par,
+        code = adds(code, gsub('PAR', par,
 '    PAR_fixef = PAR_fixed_ * X_PAR[n]\';\n'))
     ## This is here for the ranef = ranef + ... part to work
     for(par in names(random))
-        code = add.strings(code, gsub('PAR', par,
+        code = adds(code, gsub('PAR', par,
 '    for(i in 1:PAR_size)
       PAR_ranef[i] = 0;\n'))
     for(par in names(random))
         for(g in 1:length(random[[par]])){
             part = gsub('PAR', par,
 '    PAR_ranef = PAR_ranef + PAR_random_G[PAR_group_G[n]] * Z_PAR_G[n]\';\n')
-            code = add.strings(code, gsub('G', g, part))
+            code = adds(code, gsub('G', g, part))
         }
     ## invlink functions
-    code = add.strings(code, '    // inverse link function\n')
+    code = adds(code, '    // inverse link function\n')
     for(par in pars)
         if(par == 'gamma'){
             ## gamma parameters are link-transformed after adding the random effects, if any
@@ -141,8 +147,8 @@ make.model.code = function(model, fixed, random, links, only_prior = F){
             }else{
                 part = '    gamma = gamma_fixef + gamma_ranef;\n'
             }
-            code = add.strings(code, part)
-            code = add.strings(code, stan.template(sprintf('gamma_link_%s.stan', links[[par]])))
+            code = adds(code, part)
+            code = adds(code, stan.template(sprintf('gamma_link_%s.stan', links[[par]])))
         }else{
             if(links[[par]] == 'identity'){
                 if(is.null(random[[par]])){
@@ -150,62 +156,67 @@ make.model.code = function(model, fixed, random, links, only_prior = F){
                 }else{
                     part = '    PAR_ = PAR_fixef + PAR_ranef;\n'
                 }
-                code = add.strings(code, gsub('PAR', par, part))
+                code = adds(code, gsub('PAR', par, part))
             }else if(links[[par]] == 'log'){
                 if(is.null(random[[par]])){
                     part = '    PAR_ = exp(PAR_fixef);\n'
                 }else{
                     part = '    PAR_ = exp(PAR_fixef + PAR_ranef);\n'
                 }
-                code = add.strings(code, gsub('PAR', par, part))
+                code = adds(code, gsub('PAR', par, part))
             }else if(links[[par]] == 'id_log'){
                 if(is.null(random[[par]])){
                     part = '    PAR_ = PAR_fixef;\n'
                 }else{
                     part = '    for(i in 1:PAR_size)PAR_[i] = PAR_fixef[i] * exp(PAR_ranef[i]);\n'
                 }
-                code = add.strings(code, gsub('PAR', par, part))
+                code = adds(code, gsub('PAR', par, part))
             }
         }
     ## likelihood
-    code = add.strings(code, stan.template(sprintf('likelihood_%s.stan', model)))
+    code = adds(code, stan.template(sprintf('likelihood_%s.stan', model)))
     ## model
-    code = add.strings(code, '\n  }\n}\n\nmodel {\n')
+    code = adds(code, '\n  }\n}\n\nmodel {\n')
     ## fixed effects' priors
     for(par in names(fixed)){
         if(links[[par]] == 'id_log'){
-            prior = ' ~ normal(PAR_prior_fixed_mu[i, j], PAR_prior_fixed_sd[i, j]) T[0,];\n'
+            prior = ' target += normal_lpdf(PAR_fixed[i, j] | PAR_prior_fixed_mu[i, j], PAR_prior_fixed_sd[i, j]) - \
+normal_lccdf(0 | PAR_prior_fixed_mu[i, j], PAR_prior_fixed_sd[i, j]);\n'
         }else{
-            prior = ' ~ normal(PAR_prior_fixed_mu[i, j], PAR_prior_fixed_sd[i, j]);\n'
+            prior = ' target += normal_lpdf(PAR_fixed[i, j] | PAR_prior_fixed_mu[i, j], PAR_prior_fixed_sd[i, j]);\n'
         }
-        code = add.strings(code, gsub('PAR', par,
-                                      add.strings(
+        code = adds(code, gsub('PAR', par,
+                                      adds(
 '  // PAR fixed effects priors
   for(i in 1:PAR_size)
     for(j in 1:X_PAR_ncol)
-      PAR_fixed[i, j]', prior)))
+      ', prior)))
     }
     for(par in names(random))
         for(g in 1:length(random[[par]])){
             part = gsub('PAR', par,
 '  // PAR random effects
   for(i in 1:PAR_size)
-    for(j in 1:Z_PAR_ncol_G)
-      PAR_sd_G[i, j] ~ cauchy(0, PAR_prior_random_scale_G[i, j]) T[0,];
-  L_corr_PAR_G ~ lkj_corr_cholesky(PAR_prior_random_nu_G);
+    for(j in 1:Z_PAR_ncol_G){
+      target += cauchy_lpdf(PAR_sd_G[i, j] | 0, PAR_prior_random_scale_G[i, j]);
+      target += -cauchy_lccdf(0 | 0, PAR_prior_random_scale_G[i, j]);
+    }
+  target += lkj_corr_cholesky_lpdf(L_corr_PAR_G | PAR_prior_random_nu_G);
   for(g in 1:PAR_group_max_G)
-    PAR_z_G[g] ~ normal(0, 1);\n')
-            code = add.strings(code, gsub('G', g, part))
+    target += normal_lpdf(PAR_z_G[g] | 0, 1);\n')
+##    target += multi_normal_cholesky_lpdf(PAR_random_G_v[g] | zeros_PAR_G, diag_pre_multiply(PAR_sd_G_v, L_corr_PAR_G));\n')
+##    target += normal_lpdf(PAR_z_G[g] | 0, 1);\n')
+            code = adds(code, gsub('G', g, part))
         }
 if(only_prior){
-    code = add.strings(code, '\n}\n')
+    code = adds(code, '\n}\n')
 }else{
-   code = add.strings(code,
+   code = adds(code,
 '  for(n in 1:N)
-    counts[n] ~ multinomial(multinomial_p[n]);\n}\n\n')
+    target += multinomial_lpmf(counts[n] | multinomial_p[n]);\n}\n\n')
 }
     ## generated quantities
-    code = add.strings(code,
+    code = adds(code,
 'generated quantities{
   int<lower=0> counts_new[N, K];
   for(n in 1:N)
@@ -213,8 +224,13 @@ if(only_prior){
     code
 }
 
-add.strings = function(string1, string2, collapse = '')
-    paste(c(string1, string2), collapse = collapse)
+adds = function(...){
+    strs = list(...)
+    res = ''
+    for(s in strs)
+        res = paste(res, s, sep = '')
+    res
+}
 
 stan.template = function(fname){
     paste(readLines(stan.file(fname)), collapse = '\n')

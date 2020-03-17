@@ -42,7 +42,7 @@ fit = function(m, method = 'jmap',
             pars = NULL
             for(par in names(m$fixed))
                 pars = c(pars, sprintf('%s_fixed', par))
-            for(str in c('%s_sd_%d', 'corr_%s_%d', '%s_random_%d'))
+            for(str in c('%s_sd_%d', 'corr_%s_%d', '%s_random_%d', 'L_corr_%s_%d', '%s_z_%d')) ## '%s_random_%d_v'))
                 for(par in names(m$random))
                     for(g in 1:length(m$random[[par]]))
                         pars = c(pars, sprintf(str, par, g))
