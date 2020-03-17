@@ -29,7 +29,7 @@ fit = function(m, method = 'jmap',
     if(sample.prior)
         method = 'stan'
     if(method == 'jmap'){
-        m$jmapfit = optimizing(stan_model(model_code = m$code), m$sdata, init = jmap_init, ...)
+        m$jmapfit = rstan::optimizing(rstan::stan_model(model_code = m$code), m$sdata, init = jmap_init, ...)
         if(m$jmapfit$return_code != 0)
             warning('optimizing did not converge')
     }else if(method == 'stan'){
@@ -53,16 +53,16 @@ fit = function(m, method = 'jmap',
         }
         if(stan_optimizations){
             options(mc.cores = parallel::detectCores())
-            rstan_options(auto_write = TRUE)
+            rstan::rstan_options(auto_write = TRUE)
             ## Sys.setenv(LOCAL_CPPFLAGS = '-march=native')
         }
         stanargs$data = m$sdata
         if(sample.prior){
             stanargs$model_code = make.model.code(m$model, m$fixed, m$random, m$links, only_prior = T)
-            m$stanfit.prior = do.call(stan, stanargs)
+            m$stanfit.prior = do.call(rstan::stan, stanargs)
         }else{
             stanargs$model_code = m$code
-            m$stanfit = do.call(stan, stanargs)
+            m$stanfit = do.call(rstan::stan, stanargs)
         }
     }else{
         stop(sprintf('Unknown method %s, must be either jmap or stan', method))

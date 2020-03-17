@@ -8,13 +8,6 @@ library(bridgesampling)
 gabor$r = with(gabor, combined.response(stim, rating, acc))
 gabor$r2 = with(gabor, combined.response(stim, accuracy = acc))
 
-library(bhsdtr2)
-gabor$r.binary = combined.response(gabor$stim, accuracy = gabor$acc)
-m = bhsdtr(c(dprim ~ 1, thr ~ 1),
-r.binary ~ stim,
-gabor[gabor$order == 'DECISION-RATING' & gabor$duration == '32 ms' &
-gabor$id == 1,])
-
 ######################################################################
 ## no fitting test
 
