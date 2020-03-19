@@ -1,4 +1,4 @@
-## devtools::install('../../bhsdtr2')
+## devtools::install('~/Dropbox/CS/code/r/bhsdtr2')
 ## devtools::document('~/cs/code/r/bhsdtr2')
 source('~/Dropbox/CS/code/r/bhsdtr2/tests/utils.R')
 library(bhsdtr2)
@@ -154,6 +154,15 @@ samples(m, 'thr')
 ## samples: 21000, estimates rounded to 2 decimal places
 ##  thr.1 thr.2 thr.3 thr.4 thr.5 thr.6 thr.7
 ##  -1.88 -1.46 -0.93  0.08  0.67  1.08  1.78
+
+######################################################################
+## plot jmap
+
+(m = bhsdtr(c(dprim ~ duration + (duration | id), thr ~ 1 + (1 | id)), r ~ stim,
+            gabor[(gabor$order == 'DECISION-RATING'),]))
+
+plot(m)
+plot(m, vs = 'duration')
 
 ######################################################################
 ## bf bridgesampling

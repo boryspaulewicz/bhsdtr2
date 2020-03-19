@@ -285,6 +285,9 @@ aggregate.data = function(data, resp.stim.vars, K){
         ## add uniquely named resp and stim vars to data
         data[[resp.stim.unique.names[i]]] = resp.stim.vars[[i]]
     }
+    ## Removing NA rows
+    for(v in names(data))
+        data = data[!is.na(data[[v]]),]
     ## aggregation
     res = plyr::ddply(data, unique(c(vnames, resp.stim.unique.names[names(resp.stim.vars) == 'stim'])),
                       ## We are adding the 1:K vector to make sure

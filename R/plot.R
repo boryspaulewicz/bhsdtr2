@@ -8,7 +8,7 @@ plot.bhsdtr_model = function(x, vs = NULL, type = 'response', alpha = .05, bw = 
     if(ncol(x$adata$data) == 0)
         x$adata$data = data.frame(x = rep(' ', nrow(x$adata$data)))
     if(!is.null(x$jmapfit))
-        p = pointest.plot(x$jmapfit, x$code, x$model, x$adata, x$sdata)
+        p = pointest.plot(x$jmapfit, x$code, x$model, x$adata, x$sdata, vs, bw)
     if(!is.null(x$stanfit)){
         vs = names(x$adata$data)
         for(rpar in x$random)
@@ -111,38 +111,54 @@ plot.bhsdtr_model = function(x, vs = NULL, type = 'response', alpha = .05, bw = 
     p
 }
 
-pointest.plot = function(jmapfit, model_code, model, adata, sdata){
-    poinstest = matrix(jmapfit$par[grep('multinomial_p', names(jmapfit$par))], nrow = max(1, nrow(adata$data)))
+pointest.plot = function(jmapfit, model_code, model, adata, sdata, vs = NULL, bw = FALSE){
+    pointest = matrix(jmapfit$par[grep('multinomial_p', names(jmapfit$par))], nrow = max(1, nrow(adata$data)))
     obs = t(apply(sdata$counts, 1, function(x)(x / sum(x))))
     if(model %in% c('sdt', 'uvsdt', 'metad'))
         stim = as.factor(adata$stimulus)
-    f = as.factor(adata$data[,1])
-    if(ncol(adata$data) > 1)
-        for(i in 2:ncol(adata$data))
-            f = f:as.factor(adata$data[,i])
+    if(is.null(vs)){
+        f = as.factor(adata$data[,1])
+        if(ncol(adata$data) > 1)
+            for(i in 2:ncol(adata$data))
+                f = f:as.factor(adata$data[,i])
+    }else{
+        f = as.factor(adata$data[[vs[1]]])
+        if(length(vs) > 1)
+            for(v in 2:length(vs))
+                f = f:as.factor(adata$data[[vs[v]]])
+    }
+    df = data.frame(f = rep(f, ncol(pointest)), th = rep(1:ncol(pointest), each = length(f)),
+                    pointest = as.vector(pointest), obs = as.vector(obs))
+    aggregation.vs = c('th', 'f')
+    if(model %in% c('sdt', 'uvsdt', 'metad')){
+        df$stim = rep(stim, ncol(pointest))
+        aggregation.vs = c(aggregation.vs, 'stim')
+    }
+    adf = aggregate(df$obs, df[, aggregation.vs], mean)
+    adf$fit = aggregate(df$pointest, df[, aggregation.vs], mean)$x
     title = sprintf('Lines = model: %s, points = observed response distribution', model)
     yl = 'p(Response)'
     if(model %in% c('sdt', 'uvsdt', 'metad')){
         xl = 'Response = Decision + Rating'
-        p = ggplot(data.frame(f = rep(f, ncol(poinstest)), stim = rep(stim, ncol(poinstest)), th = rep(1:ncol(poinstest), each = length(f)),
-                              poinstest = as.vector(poinstest), obs = as.vector(obs)),
-                   aes(th, obs, group = stim, color = stim)) +
-            geom_line(aes(y = poinstest)) +
+        p = ggplot(adf, aes(th, x, group = stim, color = stim)) +
+            geom_line(aes(y = fit)) +
             geom_point() +
             labs(title = title, color = 'Stimulus') + xlab(xl) + ylab(yl) +
             facet_wrap(~ f)
     }else{
         xl = 'Response = Rating'
-        p = ggplot(data.frame(f = rep(f, ncol(poinstest)), th = rep(1:ncol(poinstest), each = length(f)),
-                          poinstest = as.vector(poinstest), obs = as.vector(obs)),
-                   aes(th, obs)) +
-            geom_line(aes(y = poinstest)) +
+        p = ggplot(adf, aes(th, x)) +
+            geom_line(aes(y = fit)) +
             geom_point() +
             labs(title = title) +
             xlab(xl) +
             ylab(yl) +
             facet_wrap(~ f)
     }
-    p
+    if(bw){
+        p + theme_minimalist()
+    }else{
+        p
+    }
 }
 
