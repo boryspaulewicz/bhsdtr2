@@ -46,7 +46,7 @@ merged.extract = function(m, par, group = NULL){
         group.size = m$sdata[[sprintf('%s_group_max_%d', par, group)]]
     }
     size = m$sdata[[sprintf('%s_size', par)]]
-    res1 = extract(m$stanfit, par.name, permute = F)
+    res1 = rstan::extract(m$stanfit, par.name, permuted = F)
     if(!is.null(group)){
         res1 = array(res1, c(dim(res1)[1:2], group.size, size, dim(res1)[3] / (group.size * size)))
         array(res1, c(dim(res1)[1] * dim(res1)[2], group.size, size, dim(res1)[5]))
