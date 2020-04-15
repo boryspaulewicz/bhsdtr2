@@ -9,59 +9,72 @@ gabor$r = with(gabor, combined.response(stim, rating, acc))
 gabor$r2 = with(gabor, combined.response(stim, accuracy = acc))
 
 ######################################################################
-## no fitting test
+## New parser
 
 (m = bhsdtr(c(dprim ~ duration + (duration | id), thr ~ 1 + (1 | id)), r ~ stim,
             gabor[(gabor$order == 'DECISION-RATING'),], method = F))
 
+## model = m$model
+## links = m$links
+## fixed = m$fixed
+## random = m$random
+## sdata = m$sdata
+## sdata$delta_prior_random_sd_lb_1 = 0
+## sdata$delta_prior_random_sd_ub_1 = NA
+## sdata$gamma_prior_random_sd_lb_1 = 0
+## sdata$gamma_prior_random_sd_ub_1 = NA
+## sdata$delta_prior_fixed_lb = 0
+## sdata$delta_prior_fixed_ub = NA
+## sdata$gamma_prior_fixed_lb = 0
+## sdata$gamma_prior_fixed_ub = 20
 
-model = m$model
-links = m$links
-fixed = m$fixed
-random = m$random
-sdata = m$sdata
-sdata$delta_prior_random_sd_lb_1 = 0
-sdata$delta_prior_random_sd_ub_1 = NA
-sdata$gamma_prior_random_sd_lb_1 = 0
-sdata$gamma_prior_random_sd_ub_1 = NA
-sdata$delta_prior_fixed_lb = 0
-sdata$delta_prior_fixed_ub = NA
-sdata$gamma_prior_fixed_lb = 0
-sdata$gamma_prior_fixed_ub = 20
+cat(parse.model.code(m))
 
-lines = readLines('~/Dropbox/CS/code/r/bhsdtr2/inst/stan_templates/ordinal_new.stan')
-parsed = ''
-l = 1
-while(l <= length(lines)){
-    if(grepl('//cb', lines[l])){
-        cb = l
-        for(k in (l + 1):length(lines))
-            if(grepl('//ce', lines[k]))break
-        ce = k
-        processed = process.chunk(lines[cb], paste(lines[(cb + 1):(ce - 1)], collapse = '\n'), model, links, fixed, random, sdata)
-        if(processed != "")
-            parsed = paste(parsed, processed, sep = '\n')
-        l = k + 1
-    }else{
-        parsed = paste(parsed, lines[l], sep = '\n')
-        l = l + 1
+## fixed = m$fixed; random = m$random; model = m$model; links = m$links
+
+parse.model.code = function(m){
+    bounds.fe = bounds.sd = list()
+    for(par in names(m$fixed)){
+        lb.fe.name = sprintf('%s_prior_fixed_lb', par)
+        ub.fe.name = sprintf('%s_prior_fixed_ub', par)
+        bounds.fe[[par]] = ''
+        if(!is.na(m$sdata[[lb.fe.name]]))
+            bounds.fe[[par]] = paste(bounds.fe[[par]], 'l', sep = '')
+        if(!is.na(m$sdata[[ub.fe.name]]))
+            bounds.fe[[par]] = paste(bounds.fe[[par]], 'u', sep = '')
     }
-}
-
-parse.bounds = function(chunk, lb.name, ub.name, sdata){
-    lb = sdata[[lb.name]][1]
-    ub = sdata[[ub.name]][1]
-    bounds = NULL
-    if(!is.na(lb))
-        bounds = c(bounds, sprintf('lower=%f', lb))
-    if(!is.na(ub))
-        bounds = c(bounds, sprintf('upper=%f', ub))
-    if(!is.null(bounds)){
-        bounds = sprintf('<%s>', paste(bounds, collapse = ','))
-    }else{
-        bounds = ''
+    for(par in names(m$random)){
+        bounds.sd[[par]] = rep('', length(m$random[[par]]))
+        for(g in 1:length(m$random[[par]])){
+            lb.sd.name = sprintf('%s_prior_random_sd_lb_%d', par, g)
+            ub.sd.name = sprintf('%s_prior_random_sd_ub_%d', par, g)
+            if(!is.na(m$sdata[[lb.sd.name]]))
+                bounds.sd[[par]][g] = paste(bounds.sd[[par]][g], 'l', sep = '')
+            if(!is.na(m$sdata[[ub.sd.name]]))
+                bounds.sd[[par]][g] = paste(bounds.sd[[par]][g], 'u', sep = '')
+        }
     }
-    gsub('<BOUNDS>', bounds, chunk)
+    parsed = ''
+    lines = readLines('~/Dropbox/CS/code/r/bhsdtr2/inst/stan_templates/ordinal_new.stan')
+    l = 1
+    while(l <= length(lines)){
+        if(grepl('//cb', lines[l])){
+            cb = l
+            for(k in (l + 1):length(lines))
+                if(grepl('//ce', lines[k]))break
+            ce = k
+            header = lines[cb]
+            chunk = paste(lines[(cb + 1):(ce - 1)], collapse = '\n')
+            processed = process.chunk(header, chunk, m$model, m$links, m$fixed, m$random, m$sdata)
+            if(processed != "")
+                parsed = paste(parsed, processed, sep = '\n')
+            l = k + 1
+        }else{
+            parsed = paste(parsed, lines[l], sep = '\n')
+            l = l + 1
+        }
+    }
+    parsed
 }
 
 ## Bounds possible only for fixed effects and random effects'
@@ -69,38 +82,29 @@ parse.bounds = function(chunk, lb.name, ub.name, sdata){
 process.chunk = function(header, chunk, model, links, fixed, random, sdata){
     parsed = NULL
     test = regmatches(header, regexpr('\\{.*\\}', header))
+    if(length(test) == 0){
+        test = parse(text = 'TRUE')
+    }else{
+        test = parse(text = test)
+    }
     process = T
-    if(length(test) != 0)
-        process = eval(parse(text = test))
-    if(process){
-        if(grepl('fpariter', header)){
-            for(par in names(fixed)){
-                if(grepl('fbounds', header)){
-                    chunk.bounds = parse.bounds(chunk, sprintf('%s_prior_fixed_lb', par),
-                                                   sprintf('%s_prior_fixed_ub', par), sdata)
-                }else{
-                    chunk.bounds = chunk
-                }
-                parsed = c(parsed, gsub('PAR', par, chunk.bounds))
-            }
-        }else if(grepl('rpariter', header)){
-            for(par in names(random)){
-                chunk.par = gsub('PAR', par, chunk)
-                if(grepl('gpariter', header)){
-                    for(g in 1:length(random[[par]])){
-                        if(grepl('sdbounds', header)){
-                            chunk.par.bounds = parse.bounds(chunk.par, sprintf('%s_prior_random_sd_lb_%d', par, g),
-                                                              sprintf('%s_prior_random_sd_ub_%d', par, g), sdata)
-                        }else{
-                            chunk.par.bounds = chunk.par
-                        }
-                        parsed = c(parsed, gsub('G', g, chunk.par.bounds))
-                    }
-                }else{
-                    parsed = c(parsed, chunk.par)
-                }
+    if(grepl('fpariter', header)){
+        for(par in names(fixed)){
+            if(eval(test))
+                parsed = c(parsed, gsub('PAR', par, chunk))
+        }
+    }else if(grepl('rpariter', header)){
+        for(par in names(random)){
+            chunk.par = gsub('PAR', par, chunk)
+            if(grepl('gpariter', header)){
+                for(g in 1:length(random[[par]]))
+                    parsed = c(parsed, gsub('G', g, chunk.par))
+            }else{
+                parsed = c(parsed, chunk.par)
             }
         }
+    }else if(eval(test)){
+        parsed = chunk
     }
     paste(parsed, collapse = '\n')
 }
@@ -243,6 +247,46 @@ m3.p = set.prior(m3, delta = list(mu = 123, sd = 234, scale = list('1' = 321), n
 
 ######################################################################
 ## models and links tests
+
+## Test meta-d' estimation
+n = 100000
+dprim = 2
+metad = 1
+criteria = c(-2.1, -1.4, -.7, 0, .7, 1.4, 2.1)
+
+cum1.s1 = pnorm(c(criteria, +Inf) + dprim / 2)
+probs1.s1 = cum1.s1 - c(0, cum1.s1[-length(cum1.s1)])
+cum1.s2 = pnorm(c(criteria, +Inf) - dprim / 2)
+probs1.s2 = cum1.s2 - c(0, cum1.s2[-length(cum1.s2)])
+
+cum2.s1 = pnorm(c(criteria, +Inf) + metad / 2)
+probs2.s1 = cum2.s1 - c(0, cum2.s1[-length(cum2.s1)])
+cum2.s2 = pnorm(c(criteria, +Inf) - metad / 2)
+probs2.s2 = cum2.s2 - c(0, cum2.s2[-length(cum2.s2)])
+K = length(criteria) + 1
+Kb2 =  K / 2
+hit1 = sum(probs1.s2[(Kb2 + 1):K])
+fa1 = sum(probs1.s1[(Kb2 + 1):K])
+hit2 = sum(probs2.s2[(Kb2 + 1):K])
+fa2 = sum(probs2.s1[(Kb2 + 1):K])
+## Normalization
+probs2.s2[(Kb2 + 1):K] = probs2.s2[(Kb2 + 1):K] * hit1 / hit2
+probs2.s1[(Kb2 + 1):K] = probs2.s1[(Kb2 + 1):K] * fa1 / fa2
+probs2.s2[1:Kb2] = probs2.s2[1:Kb2] * (1 - hit1) / (1 - hit2)
+probs2.s1[1:Kb2] = probs2.s1[1:Kb2] * (1 - fa1) / (1 - fa2)
+
+d = data.frame(stim = rep(1:2, each = n))
+d$r[d$stim == 1] = apply(rmultinom(n, 1, probs1.s1), 2, function(x)which(x == 1))
+d$r[d$stim == 2] = apply(rmultinom(n, 1, probs1.s2), 2, function(x)which(x == 1))
+d$r2[d$stim == 1] = apply(rmultinom(n, 1, probs2.s1), 2, function(x)which(x == 1))
+d$r2[d$stim == 2] = apply(rmultinom(n, 1, probs2.s2), 2, function(x)which(x == 1))
+
+m1 = bhsdtr(c(dprim ~ 1, thr ~ 1), r ~ stim, d)
+samples(m1, 'dprim')
+## Ok
+m2 = bhsdtr(c(metad ~ 1, thr ~ 1), r2 ~ stim, d)
+samples(m2, 'dprim')
+## Ok
 
 sim_sdt = function(n = 1, dprim = 1.5, criteria = c(-2.1, -1.4, -.7, 0, .7, 1.4, 2.1), sd_ratio = 1){
     which_bin = function(x, thr)min(which(x <= c(-Inf, thr, Inf)) - 1)

@@ -4,7 +4,7 @@
 \alias{samples}
 \title{Obtain posterior samples or jmap estimates for unique combinations of predictor values}
 \usage{
-samples(m, par, group = NULL, ...)
+samples(m, par, group = NULL, prior = F, ...)
 }
 \arguments{
 \item{m}{a fitted bhsdtr model object}

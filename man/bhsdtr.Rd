@@ -11,6 +11,7 @@ bhsdtr(
   links = list(gamma = "log_distance"),
   method = "jmap",
   prior = list(),
+  sample.prior = F,
   thresholds_scale = 2,
   force.id_log = F,
   ...

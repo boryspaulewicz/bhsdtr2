@@ -190,14 +190,16 @@ The fitted object will be stored in the $jmapfit field of the bhsdtr model objec
     m = list(fixed = fixed, random = random,
              adata = adata, sdata = sdata, data = original.data,
              resp = resp.stim.vars$resp, stim = resp.stim.vars$stim,
-             model = model, links = links,
-             code = make.model.code(model, fixed, random, links))
+             model = model, links = links)
+             ## code = make.model.code(model, fixed, random, links))
              ## code = paste(parsed, collapse = '\n'))
     class(m) = c('bhsdtr_model', class(m))
     if(!is.null(prior)){
         prior$model = m
         m = do.call(set.prior, prior)
     }
+    ## m$code = parse.model.code(m)
+    m$code = make.model.code(m$model, m$fixed, m$random, m$links)
     if(sample.prior){
         method = 'stan'
         m = fit(m, method, ...)
@@ -209,7 +211,7 @@ The fitted object will be stored in the $jmapfit field of the bhsdtr model objec
 
 ## data structures required by the model
 sdata.matrices = function(sdata, adata, fixed, random, model, links, force.id_log = F){
-    ## Fixed effects' model matrices
+    ## Fixed effects model matrices and priors
     for(par in names(fixed)){
         v = sprintf('X_%s', par)
         sdata[[v]] = model.matrix(fixed[[par]], adata$data)
@@ -221,11 +223,13 @@ sdata.matrices = function(sdata, adata, fixed, random, model, links, force.id_lo
         sdata[[sprintf('X_%s_ncol', par)]] = ncol(sdata[[v]])
         sdata[[sprintf('%s_is_fixed', par)]] = sdata[[sprintf('%s_fixed_value', par)]] =
             matrix(0, nrow = par.size(par, model, links, sdata$K)[1], ncol = ncol(sdata[[v]]))
-        ## priors
+        ## Fixed effects priors
         for(prior.par in c('fixed_mu', 'fixed_sd'))
             sdata[[sprintf('%s_prior_%s', par, prior.par)]] = default.prior(par, ncol(sdata[[v]]), prior.par, model, links, sdata$K)
+        for(prior.bound in c('lb', 'ub'))
+            sdata[[sprintf('%s_prior_fixed_%s', par, prior.bound)]] = NA
     }
-    ## Random effects' model matrices
+    ## Random effects model matrices and priors
     for(par in names(random)){
         Z = g = g.original = list()
         Z_ncol = g_max = NULL
