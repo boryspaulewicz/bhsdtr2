@@ -59,7 +59,7 @@ fit = function(m, method = 'jmap',
         }
         stanargs$data = m$sdata
         if(sample.prior){
-            stanargs$model_code = make.model.code(m$model, m$fixed, m$random, m$links, only_prior = T)
+            stanargs$model_code = parse.model.code(m)
             m$stanfit.prior = do.call(rstan::stan, stanargs)
         }else{
             stanargs$model_code = m$code

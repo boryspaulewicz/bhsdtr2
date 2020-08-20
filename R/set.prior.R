@@ -69,7 +69,6 @@ set.prior = function(model, ...){
             }
         }
     }
-    ## model$code = parse.model.code(model)
-    model$code = make.model.code(model$model, model$fixed, model$random, model$links)
+    model$code = parse.model.code(model)
     model
 }
