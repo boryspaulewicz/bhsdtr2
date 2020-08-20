@@ -19,8 +19,7 @@ parse.model.code = function(m){
         }
     }
     parsed = ''
-    lines = readLines(paste(path.package('bhsdtr2'), '/stan_templates/ordinal_new.stan', sep = ''))
-    ## lines = readLines('~/Dropbox/CS/code/r/bhsdtr2/inst/stan_templates/ordinal_new.stan')
+    lines = readLines(paste(path.package('bhsdtr2'), '/stan_templates/ordinal.stan', sep = ''))
     l = 1
     while(l <= length(lines)){
         if(grepl('//cb', lines[l])){
