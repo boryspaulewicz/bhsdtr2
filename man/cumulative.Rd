@@ -15,7 +15,7 @@ function: bhsdtr(c(mean ~ 1, thr ~ f1 * f2 + (f1 | id)), resp
 ~ 1, ...)}
 
 \item{...}{additional arguments passed to the bhsdtr function. See
-the bhsdtr documentation for for details.}
+the bhsdtr documentation for details.}
 }
 \value{
 a bhsdtr model object

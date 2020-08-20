@@ -1,118 +1,5 @@
 ## -*- coding: utf-8 -*-
 
-## fixed = m$fixed; random = m$random; model = m$model; links = m$links
-
-## parse.model.code = function(m){
-##     bounds.fe = bounds.sd = list()
-##     for(par in names(m$fixed)){
-##         lb.fe.name = sprintf('%s_prior_fixed_lb', par)
-##         ub.fe.name = sprintf('%s_prior_fixed_ub', par)
-##         bounds.fe[[par]] = ''
-##         if(!is.na(m$sdata[[lb.fe.name]]))
-##             bounds.fe[[par]] = paste(bounds.fe[[par]], 'l', sep = '')
-##         if(!is.na(m$sdata[[ub.fe.name]]))
-##             bounds.fe[[par]] = paste(bounds.fe[[par]], 'u', sep = '')
-##     }
-##     for(par in names(m$random)){
-##         bounds.sd[[par]] = rep('', length(m$random[[par]]))
-##         for(g in 1:length(m$random[[par]])){
-##             lb.sd.name = sprintf('%s_prior_random_sd_lb_%d', par, g)
-##             ub.sd.name = sprintf('%s_prior_random_sd_ub_%d', par, g)
-##             if(!is.na(m$sdata[[lb.sd.name]]))
-##                 bounds.sd[[par]][g] = paste(bounds.sd[[par]][g], 'l', sep = '')
-##             if(!is.na(m$sdata[[ub.sd.name]]))
-##                 bounds.sd[[par]][g] = paste(bounds.sd[[par]][g], 'u', sep = '')
-##         }
-##     }
-##     parsed = ''
-##     lines = stan.template('ordinal_new.stan')
-##     l = 1
-##     while(l <= length(lines)){
-##         if(grepl('//cb', lines[l])){
-##             cb = l
-##             for(k in (l + 1):length(lines))
-##                 if(grepl('//ce', lines[k]))break
-##             ce = k
-##             header = lines[cb]
-##             chunk = paste(lines[(cb + 1):(ce - 1)], collapse = '\n')
-##             processed = process.chunk(header, chunk, m$model, m$links, m$fixed, m$random, m$sdata)
-##             if(processed != "")
-##                 parsed = paste(parsed, processed, sep = '\n')
-##             l = k + 1
-##         }else{
-##             parsed = paste(parsed, lines[l], sep = '\n')
-##             l = l + 1
-##         }
-##     }
-##     parsed
-## }
-
-## ## matrix<BOUNDS> -> matrix or matrix<lower=x> etc
-## parse.decl.bounds = function(chunk, lb.name, ub.name, sdata){
-##     lb = sdata[[lb.name]][1]
-##     ub = sdata[[ub.name]][1]
-##     bounds = NULL
-##     if(!is.na(lb))
-##         bounds = c(bounds, sprintf('lower=%f', lb))
-##     if(!is.na(ub))
-##         bounds = c(bounds, sprintf('upper=%f', ub))
-##     if(!is.null(bounds)){
-##         bounds = sprintf('<%s>', paste(bounds, collapse = ','))
-##     }else{
-##         bounds = ''
-##     }
-##     gsub('<BOUNDS>', bounds, chunk)
-## }
-
-## ## Bounds possible only for fixed effects and random effects'
-## ## std. devs.
-## process.chunk = function(header, chunk, model, links, fixed, random, sdata){
-##     parsed = NULL
-##     test = regmatches(header, regexpr('\\{.*\\}', header))
-##     if(length(test) == 0){
-##         test = parse(text = 'TRUE')
-##     }else{
-##         test = parse(text = test)
-##     }
-##     process = T
-##     ## if(length(test) != 0)
-##     ##     process = eval(parse(text = test))
-##     ## if(process){
-##     if(grepl('fpariter', header)){
-##         for(par in names(fixed)){
-##             if(eval(test)){
-##                 if(grepl('fbounds', header)){
-##                     chunk.bounds = parse.decl.bounds(chunk, sprintf('%s_prior_fixed_lb', par),
-##                                                      sprintf('%s_prior_fixed_ub', par), sdata)
-##                 }else{
-##                     chunk.bounds = chunk
-##                 }
-##                 parsed = c(parsed, gsub('PAR', par, chunk.bounds))
-##             }
-##         }
-##     }else if(grepl('rpariter', header)){
-##         for(par in names(random)){
-##             chunk.par = gsub('PAR', par, chunk)
-##             if(grepl('gpariter', header)){
-##                 for(g in 1:length(random[[par]])){
-##                     if(grepl('sdbounds', header)){
-##                         chunk.par.bounds = parse.decl.bounds(chunk.par, sprintf('%s_prior_random_sd_lb_%d', par, g),
-##                                                              sprintf('%s_prior_random_sd_ub_%d', par, g), sdata)
-##                     }else{
-##                         chunk.par.bounds = chunk.par
-##                     }
-##                     parsed = c(parsed, gsub('G', g, chunk.par.bounds))
-##                 }
-##             }else{
-##                 parsed = c(parsed, chunk.par)
-##             }
-##         }
-##     }else if(eval(test)){
-##         parsed = chunk
-##     }
-##     paste(parsed, collapse = '\n')
-## }
-
 ## old version
 make.model.code = function(model, fixed, random, links, only_prior = F){
     pars = unique(names(fixed), names(random))
@@ -350,4 +237,77 @@ stan.template = function(fname){
 
 stan.file = function(fname){
     sprintf('%s/stan_templates/%s', path.package('bhsdtr2'), fname)
+}
+
+######################################################################
+## New parser
+
+parse.model.code = function(m){
+    ## Bounds can be specificed only for fixed effects and random effects' standard deviations
+    bounds.fe = bounds.sd = list()
+    for(par in names(m$fixed)){
+        ## gamma_prior_fixed_lb == 1, gamma_prior_fixed_ub == NA -> bounds.fe$gamma == 'l'
+        bounds.fe[[par]] = ''
+        for(type in c('l', 'u'))
+            if(!is.na(m$sdata[[sprintf('%s_prior_fixed_%sb', par, type)]]))
+                bounds.fe[[par]] = paste(bounds.fe[[par]], type, sep = '')
+    }
+    for(par in names(m$random)){
+        bounds.sd[[par]] = rep('', length(m$random[[par]]))
+        for(g in 1:length(m$random[[par]])){
+            for(type in c('l', 'u'))
+                if(!is.na(m$sdata[[sprintf('%s_prior_random_sd_%sb_%d', par, type, g)]]))
+                    bounds.sd[[par]][g] = paste(bounds.sd[[par]][g], type, sep = '')
+        }
+    }
+    parsed = ''
+    lines = readLines(paste(path.package('bhsdtr2'), '/stan_templates/ordinal_new.stan', sep = ''))
+    ## lines = readLines('~/Dropbox/CS/code/r/bhsdtr2/inst/stan_templates/ordinal_new.stan')
+    l = 1
+    while(l <= length(lines)){
+        if(grepl('//cb', lines[l])){
+            cb = l
+            for(k in (l + 1):length(lines))
+                if(grepl('//ce', lines[k]))break
+            ce = k
+            header = lines[cb]
+            chunk = paste(lines[(cb + 1):(ce - 1)], collapse = '\n')
+            processed = process.chunk(header, chunk, m$model, m$links, m$fixed, m$random, m$sdata, bounds.fe, bounds.sd)
+            if(processed != "")
+                parsed = paste(parsed, processed, sep = '\n')
+            l = k + 1
+        }else{
+            parsed = paste(parsed, lines[l], sep = '\n')
+            l = l + 1
+        }
+    }
+    parsed
+}
+
+## Bounds possible only for fixed effects and random effects'
+## std. devs.
+process.chunk = function(header, chunk, model, links, fixed, random, sdata, bounds.fe, bounds.sd){
+    parsed = NULL
+    test = regmatches(header, regexpr('\\{.*\\}', header))
+    if(length(test) == 0){
+        test = parse(text = 'TRUE')
+    }else{
+        test = parse(text = test)
+    }
+    process = T
+    if(grepl('fpariter', header)){
+        for(par in names(fixed)){
+            if(eval(test))
+                parsed = c(parsed, gsub('PAR', par, chunk))
+        }
+    }else if(grepl('rpariter', header)){
+        for(par in names(random)){
+            for(g in 1:length(random[[par]]))
+                if(eval(test))
+                    parsed = c(parsed, gsub('G', g, gsub('PAR', par, chunk)))
+        }
+    }else if(eval(test)){
+        parsed = chunk
+    }
+    paste(parsed, collapse = '\n')
 }

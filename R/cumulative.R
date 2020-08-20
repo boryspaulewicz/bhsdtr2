@@ -7,7 +7,7 @@
 ##'     function: bhsdtr(c(mean ~ 1, thr ~ f1 * f2 + (f1 | id)), resp
 ##'     ~ 1, ...)
 ##' @param ... additional arguments passed to the bhsdtr function. See
-##'     the bhsdtr documentation for for details.
+##'     the bhsdtr documentation for details.
 ##' @return a bhsdtr model object
 ##' @export
 cumulative = function(formula, ...){

@@ -4,7 +4,7 @@
 \alias{plot.bhsdtr_model}
 \title{plot a fitted bhsdtr model}
 \usage{
-plot.bhsdtr_model(
+\method{plot}{bhsdtr_model}(
   x,
   vs = NULL,
   type = "response",

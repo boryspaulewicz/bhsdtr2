@@ -2,7 +2,7 @@
 ## devtools::document('~/cs/code/r/bhsdtr2')
 source('~/Dropbox/CS/code/r/bhsdtr2/tests/utils.R')
 library(bhsdtr2)
-library(bhsdtr)
+## library(bhsdtr)
 library(rstan)
 library(bridgesampling)
 gabor$r = with(gabor, combined.response(stim, rating, acc))
@@ -17,11 +17,16 @@ gabor$r2 = with(gabor, combined.response(stim, accuracy = acc))
 plot(m)
 plot(m, vs = 'duration')
 
+samples(m, 'dprim')
+samples(m, 'thr')
+
 ######################################################################
 ## New parser
 
 (m = bhsdtr(c(dprim ~ duration + (duration | id), thr ~ 1 + (1 | id)), r ~ stim,
             gabor[(gabor$order == 'DECISION-RATING'),], method = F))
+
+## Example arguments
 
 ## model = m$model
 ## links = m$links
@@ -37,30 +42,26 @@ plot(m, vs = 'duration')
 ## sdata$gamma_prior_fixed_lb = 0
 ## sdata$gamma_prior_fixed_ub = 20
 
-cat(parse.model.code(m))
+cat(parse.model.code(m), file = 'test_code.stan')
 
 ## fixed = m$fixed; random = m$random; model = m$model; links = m$links
 
 parse.model.code = function(m){
+    ## Bounds can be specificed only for fixed effects and random effects' standard deviations
     bounds.fe = bounds.sd = list()
     for(par in names(m$fixed)){
-        lb.fe.name = sprintf('%s_prior_fixed_lb', par)
-        ub.fe.name = sprintf('%s_prior_fixed_ub', par)
+        ## gamma_prior_fixed_lb == 1, gamma_prior_fixed_ub == NA -> bounds.fe$gamma == 'l'
         bounds.fe[[par]] = ''
-        if(!is.na(m$sdata[[lb.fe.name]]))
-            bounds.fe[[par]] = paste(bounds.fe[[par]], 'l', sep = '')
-        if(!is.na(m$sdata[[ub.fe.name]]))
-            bounds.fe[[par]] = paste(bounds.fe[[par]], 'u', sep = '')
+        for(type in c('l', 'u'))
+            if(!is.na(m$sdata[[sprintf('%s_prior_fixed_%sb', par, type)]]))
+                bounds.fe[[par]] = paste(bounds.fe[[par]], type, sep = '')
     }
     for(par in names(m$random)){
         bounds.sd[[par]] = rep('', length(m$random[[par]]))
         for(g in 1:length(m$random[[par]])){
-            lb.sd.name = sprintf('%s_prior_random_sd_lb_%d', par, g)
-            ub.sd.name = sprintf('%s_prior_random_sd_ub_%d', par, g)
-            if(!is.na(m$sdata[[lb.sd.name]]))
-                bounds.sd[[par]][g] = paste(bounds.sd[[par]][g], 'l', sep = '')
-            if(!is.na(m$sdata[[ub.sd.name]]))
-                bounds.sd[[par]][g] = paste(bounds.sd[[par]][g], 'u', sep = '')
+            for(type in c('l', 'u'))
+                if(!is.na(m$sdata[[sprintf('%s_prior_random_sd_%sb_%d', par, type, g)]]))
+                    bounds.sd[[par]][g] = paste(bounds.sd[[par]][g], type, sep = '')
         }
     }
     parsed = ''
@@ -74,7 +75,7 @@ parse.model.code = function(m){
             ce = k
             header = lines[cb]
             chunk = paste(lines[(cb + 1):(ce - 1)], collapse = '\n')
-            processed = process.chunk(header, chunk, m$model, m$links, m$fixed, m$random, m$sdata)
+            processed = process.chunk(header, chunk, m$model, m$links, m$fixed, m$random, m$sdata, bounds.fe, bounds.sd)
             if(processed != "")
                 parsed = paste(parsed, processed, sep = '\n')
             l = k + 1
@@ -88,7 +89,7 @@ parse.model.code = function(m){
 
 ## Bounds possible only for fixed effects and random effects'
 ## std. devs.
-process.chunk = function(header, chunk, model, links, fixed, random, sdata){
+process.chunk = function(header, chunk, model, links, fixed, random, sdata, bounds.fe, bounds.sd){
     parsed = NULL
     test = regmatches(header, regexpr('\\{.*\\}', header))
     if(length(test) == 0){
@@ -104,13 +105,19 @@ process.chunk = function(header, chunk, model, links, fixed, random, sdata){
         }
     }else if(grepl('rpariter', header)){
         for(par in names(random)){
-            chunk.par = gsub('PAR', par, chunk)
-            if(grepl('gpariter', header)){
-                for(g in 1:length(random[[par]]))
-                    parsed = c(parsed, gsub('G', g, chunk.par))
-            }else{
-                parsed = c(parsed, chunk.par)
-            }
+            for(g in 1:length(random[[par]]))
+                if(eval(test)){
+                    print('Parsing rpariter')
+                    parsed = c(parsed, gsub('G', g, gsub('PAR', par, chunk)))
+                }
+                   ## random parameters are always indexed
+                   ##
+                   ## if(grepl('gpariter', header)){
+                   ##     for(g in 1:length(random[[par]]))
+                   ##         parsed = c(parsed, gsub('G', g, chunk.par))
+                   ## }else{
+                   ##     parsed = c(parsed, chunk.par)
+                   ## }
         }
     }else if(eval(test)){
         parsed = chunk
@@ -288,19 +295,6 @@ m2 = bhsdtr(c(metad ~ 1, thr ~ 1), r2 ~ stim, d)
 samples(m2, 'dprim')
 ## Ok
 
-sim_sdt = function(n = 1, dprim = 1.5, criteria = c(-2.1, -1.4, -.7, 0, .7, 1.4, 2.1), sd_ratio = 1){
-    which_bin = function(x, thr)min(which(x <= c(-Inf, thr, Inf)) - 1)
-    d = data.frame(stim = rep(1:2, each = n), e = rnorm(n * 2), r = NA)
-    d$e[d$stim == 2] = d$e[d$stim == 2] * sd_ratio
-    d$e = d$e + .5 * dprim * c(-1, 1)[d$stim]
-    for(i in 1:nrow(d))
-        d$r[i] = which_bin(d$e[i], criteria)
-    attr(d, 'dprim') = dprim
-    attr(d, 'criteria') = criteria
-    attr(d, 'sd_ratio') = sd_ratio
-    d
-}
-
 fit = 'ml'
 models = c('sdt', 'uvsdt', 'metad')
 links = c('softmax', 'log_distance', 'log_ratio', 'parsimonious', 'twoparameter')
@@ -341,7 +335,7 @@ test_fixed_models = function(method = 'jmap', links = c('softmax', 'log_distance
 }
 
 test_fixed_models(models = 'sdt', links = 'parsimonious')
-test_fixed_models('stan', models = 'sdt', links = 'parsimonious')
+## test_fixed_models('stan', models = 'sdt', links = 'parsimonious')
 test_fixed_models(models = 'metad', links = 'parsimonious')
 test_fixed_models(models = 'sdt')
 test_fixed_models(models = 'uvsdt')

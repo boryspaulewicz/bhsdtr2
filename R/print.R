@@ -43,7 +43,7 @@ print.bhsdtr_model = function(x, ...){
 ##'
 ##' @export
 print.bhsdtr_samples = function(x, digits = 2, probs = c(.025, .975), ...){
-    cat(sprintf('samples: %d, estimates rounded to %d decimal places\n', dim(x)[1], digits))
+    cat(sprintf('nof. samples: %d\n', dim(x)[1]))
         tbl = matrix(x[1,,], nrow = dim(x)[2], ncol = dim(x)[3])
         for(d in 1:(dim(x)[2]))
             tbl[d,] = apply(x[,d,, drop = F], 3, mean)

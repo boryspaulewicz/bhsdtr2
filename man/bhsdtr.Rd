@@ -14,6 +14,7 @@ bhsdtr(
   sample.prior = F,
   thresholds_scale = 2,
   force.id_log = F,
+  use.parse.model.code = T,
   ...
 )
 }

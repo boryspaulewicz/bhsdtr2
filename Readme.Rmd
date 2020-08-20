@@ -320,7 +320,7 @@ bhsdtr):
 ```{r fig.width=10, fig.height=10}
 m = bhsdtr(c(dprim ~ 1, thr ~ 1), r ~ stim, gabor, method = F)
 curve(dlnorm(x, m$sdata$delta_prior_fixed_mu, m$sdata$delta_prior_fixed_sd),
-      0, 5, main = 'Default prior for d\' fixed effects', xlab = 'd\'', ylab = 'p(d\')')
+      0, 4, main = 'Default prior for d\' fixed effects', xlab = 'd\'', ylab = 'p(d\')')
 ```
 
 This is perhaps not very informative in typical situations, but in

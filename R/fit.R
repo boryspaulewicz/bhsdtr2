@@ -33,6 +33,7 @@ fit = function(m, method = 'jmap',
         if(m$jmapfit$return_code != 0)
             warning('optimizing did not converge')
     }else if(method == 'stan'){
+        ## Setting up stan arguments
         stanargs = list(...)
         args = list(chains = chains, iter = iter, init_r = init_r, warmup = warmup)
         for(arg in names(args))

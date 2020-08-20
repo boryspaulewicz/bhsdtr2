@@ -86,7 +86,7 @@
 ##' @export
 bhsdtr = function(model_formulae, response_formula, data,
                   links = list(gamma = 'log_distance'), method = 'jmap',
-                  prior = list(), sample.prior = F, thresholds_scale = 2, force.id_log = F, ...){
+                  prior = list(), sample.prior = F, thresholds_scale = 2, force.id_log = F, use.parse.model.code = T, ...){
     if(method == 'ml'){
         method = 'jmap'
         stop('method = \'ml\' is no longer a valid argument, use method = \'jmap\' instead.
@@ -198,8 +198,11 @@ The fitted object will be stored in the $jmapfit field of the bhsdtr model objec
         prior$model = m
         m = do.call(set.prior, prior)
     }
-    ## m$code = parse.model.code(m)
-    m$code = make.model.code(m$model, m$fixed, m$random, m$links)
+    if(use.parse.model.code){
+        m$code = parse.model.code(m)
+    }else{
+        m$code = make.model.code(m$model, m$fixed, m$random, m$links)
+    }
     if(sample.prior){
         method = 'stan'
         m = fit(m, method, ...)

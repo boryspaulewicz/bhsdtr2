@@ -6,7 +6,7 @@ data{
   int<lower=2> K;
   int<lower=1> Kb2;
   int<lower=0> counts[N, K];
-  //cb{model=='parsimonious'}
+car  //cb{links$gamma=='parsimonious'}
   vector[K-1] unbiased;
   //ce
   //cb{links$gamma=='softmax'}
@@ -19,15 +19,15 @@ data{
   int<lower=1> PAR_size;
   int<lower=1> PAR_size_;
   //ce
-  // Fixed effects matrices
   //cb,fpariter
+  // Fixed effects matrices
   int<lower=1> X_PAR_ncol;
   row_vector[X_PAR_ncol] X_PAR[N];
   matrix[PAR_size, X_PAR_ncol] PAR_is_fixed;
   matrix[PAR_size, X_PAR_ncol] PAR_fixed_value;
   //ce
-  // Priors
   //cb,fpariter
+  // Priors
   matrix[PAR_size, X_PAR_ncol] PAR_prior_fixed_mu;
   row_vector<lower=0>[X_PAR_ncol] PAR_prior_fixed_sd[PAR_size];
   //ce
@@ -37,31 +37,32 @@ data{
   //cb{grepl('u', bounds.fe[[par]])},fpariter
   real PAR_prior_fixed_ub;
   //ce
+  //cb,rpariter
   // Random effects matrices
-  //cb,rpariter,gpariter
   int<lower=1> PAR_group_max_G;
   int<lower=1,upper=PAR_group_max_G> PAR_group_G[N];
   int<lower=1> Z_PAR_ncol_G;
   row_vector[Z_PAR_ncol_G] Z_PAR_G[N];
   //ce
+  //cb,rpariter
   // Random effects priors
-  //cb,rpariter,gpariter
   real<lower=1> PAR_prior_random_nu_G;
+  matrix[PAR_size,Z_PAR_ncol_G] PAR_prior_random_scale_G;
   //ce
-  //cb{grepl('l', bounds.sd[[par]][g])},rpariter,gpariter
+  //cb{grepl('l', bounds.sd[[par]][g])},rpariter
   real<lower=0> PAR_prior_random_sd_lb_G;
   //ce
-  //cb{grepl('u', bounds.sd[[par]][g])},rpariter,gpariter
+  //cb{grepl('u', bounds.sd[[par]][g])},rpariter
   real<lower=0> PAR_prior_random_sd_ub_G;
   //ce
-  //cb{bounds.sd[[par]][g] == ''},rpariter,gpariter
+  //cb{bounds.sd[[par]][g] == ''},rpariter
   row_vector[Z_PAR_ncol_G] PAR_prior_random_scale_G[PAR_size];
   //ce
 }
 
 parameters{
-  // Fixed effects
   //cb{bounds.fe[[par]] == ''},fpariter
+  // Fixed effects
   matrix[PAR_size, X_PAR_ncol] PAR_fixed;
   //ce
   //cb{bounds.fe[[par]] == 'l'},fpariter
@@ -73,35 +74,35 @@ parameters{
   //cb{bounds.fe[[par]] == 'lu'},fpariter
   matrix<lower=PAR_prior_fixed_lb,upper=PAR_prior_fixed_ub>[PAR_size, X_PAR_ncol] PAR_fixed;
   //ce
+  //cb,rpariter
   // Random effects
-  //cb,rpariter,gpariter
   cholesky_factor_corr[PAR_size * Z_PAR_ncol_G] L_corr_PAR_G;
   //ce
-  //cb{bounds.sd[[par]][g] == 'l'},rpariter,gpariter
+  //cb{bounds.sd[[par]][g] == 'l'},rpariter
   row_vector<lower=PAR_prior_random_sd_lb_G>[Z_PAR_ncol_G] PAR_sd_G[PAR_size];
   //ce
-  //cb{bounds.sd[[par]][g] == 'lu'},rpariter,gpariter
+  //cb{bounds.sd[[par]][g] == 'lu'},rpariter
   row_vector<lower=PAR_prior_random_sd_lb_G,upper=PAR_prior_random_sd_ub_G>[Z_PAR_ncol_G] PAR_sd_G[PAR_size];
   //ce
-  //cb,rpariter,gpariter
+  //cb,rpariter
   vector[PAR_size * Z_PAR_ncol_G] PAR_z_G[PAR_group_max_G];
   //ce
 }
 
 transformed parameters{
-  // Fixed effects with possibly fixed values
   //cb,fpariter
+  // Fixed effects with possibly fixed values
   matrix[PAR_size, X_PAR_ncol] PAR_fixed_;
   //ce
+  //cb,rpariter
   // Random effects
-  //cb,rpariter,gpariter
   matrix[PAR_size, Z_PAR_ncol_G] PAR_random_G[PAR_group_max_G];
   //ce
-  // vectorized matrix of random effects' standard deviations
-  //cb,rpariter,gpariter
+  //cb,rpariter
+  // Vectorized matrix of random effects' standard deviations
   vector<lower=0>[PAR_size * Z_PAR_ncol_G] PAR_sd_G_v;
   //ce
-  //cb,rpariter,gpariter
+  //cb,rpariter
   matrix[PAR_size * Z_PAR_ncol_G, PAR_size * Z_PAR_ncol_G] corr_PAR_G;
   //ce
   //cb,fpariter
@@ -122,8 +123,8 @@ transformed parameters{
   //cb{model == 'metad'}
   vector[2] normalization; // meta-d'
   //ce
-  // Fixing fixed effects if requested
   //cb,fpariter
+  // Fixing fixed effects if requested
   for(i in 1:PAR_size)
     for(j in 1:X_PAR_ncol)
       if(PAR_is_fixed[i, j] == 1){
@@ -132,12 +133,12 @@ transformed parameters{
         PAR_fixed_[i, j] = PAR_fixed[i, j];
       }
   //ce
+  //cb,rpariter
   // Random effects correlation matrices
-  //cb,rpariter,gpariter
   corr_PAR_G = multiply_lower_tri_self_transpose(L_corr_PAR_G); // corr_PAR_G = L_corr_PAR_G * L_corr_PAR_G';
   //ce
+  //cb,rpariter
   // Vectorization of random effects' sd matrices, column major order
-  //cb,rpariter,gpariter
   for(i in 1:PAR_size)
     for(j in 1:Z_PAR_ncol_G)
       PAR_sd_G_v[i + (j - 1) * PAR_size] = PAR_sd_G[i, j];
@@ -150,7 +151,7 @@ transformed parameters{
     for(i in 1:PAR_size)
       PAR_ranef[i] = 0;
     //ce
-    //cb,rpariter,gpariter
+    //cb,rpariter
     PAR_ranef = PAR_ranef + PAR_random_G[PAR_group_G[n]] * Z_PAR_G[n]';
     //ce
     // Applying the inverse link functions
@@ -270,8 +271,8 @@ transformed parameters{
 }
 
 model{
-  // Fixed effects' priors
   //cb{bounds.fe[[par]] == ''},fpariter
+  // Fixed effects' priors
   for(i in 1:PAR_size)
     for(j in 1:X_PAR_ncol)
       target += normal_lpdf(PAR_fixed[i, j] | PAR_prior_fixed_mu[i, j], PAR_prior_fixed_sd[i, j]);
@@ -295,8 +296,8 @@ model{
         log_diff_exp(normal_lcdf(PAR_prior_fixed_ub | PAR_prior_fixed_mu[i, j], PAR_prior_fixed_sd[i, j]),
                      normal_lcdf(PAR_prior_fixed_lb | PAR_prior_fixed_mu[i, j], PAR_prior_fixed_sd[i, j]));
   //ce
+  //cb,rpariter
   // Random effects' priors
-  //cb,rpariter,gpariter
   for(i in 1:PAR_size)
     for(j in 1:Z_PAR_ncol_G){
       target += cauchy_lpdf(PAR_sd_G[i, j] | 0, PAR_prior_random_scale_G[i, j]);
@@ -304,8 +305,8 @@ model{
     }
   target += lkj_corr_cholesky_lpdf(L_corr_PAR_G | PAR_prior_random_nu_G);
   //ce
+  //cb,rpariter
   // Random effects before scaling
-  //cb,rpariter,gpariter
   for(g in 1:PAR_group_max_G)
     target += normal_lpdf(PAR_z_G[g] | 0, 1);
   //ce
