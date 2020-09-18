@@ -60,8 +60,8 @@ samples = function(m, par, group = NULL, prior = F, ...){
 
 ## e.g., dprim -> delta
 par.to.linked = function(par)
-    if(any(par %in% c('dprim', 'metad', 'sdratio', 'thr', 'mean'))){
-        c(dprim = 'delta', metad = 'delta', sdratio = 'theta', thr = 'gamma', mean = 'eta')[par]
+    if(any(par %in% c('dprim', 'metad', 'sdratio', 'thr', 'mean', 'dprimr', 'R'))){
+        c(dprim = 'delta', metad = 'delta', sdratio = 'theta', thr = 'gamma', mean = 'eta', dprimr = 'delta', R = 'theta')[par]
     }else{
         par
     }

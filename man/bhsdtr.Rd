@@ -14,7 +14,7 @@ bhsdtr(
   sample.prior = F,
   thresholds_scale = 2,
   force.id_log = F,
-  use.parse.model.code = T,
+  fit = T,
   ...
 )
 }
@@ -68,6 +68,8 @@ gamma link function (see the bhsdtr preprint).}
 \item{force.id_log}{If FALSE (the default) separate intercepts
 parametrization will be required for the delta / d' / meta-d'
 model matrices when using the id_log link function.}
+
+\item{fit}{If TRUE (the default) then also fit the model}
 
 \item{...}{arguments to be passed to the stan function.}
 }

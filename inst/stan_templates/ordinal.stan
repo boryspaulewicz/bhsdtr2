@@ -6,14 +6,17 @@ data{
   int<lower=2> K;
   int<lower=1> Kb2;
   int<lower=0> counts[N, K];
-car  //cb{links$gamma=='parsimonious'}
+  //cb{links$gamma=='parsimonious'}
   vector[K-1] unbiased;
   //ce
   //cb{links$gamma=='softmax'}
   real thresholds_scale;
   //ce
-  //cb{model %in% c('sdt', 'uvsdt', 'metad')}
+  //cb{model %in% c('sdt', 'uvsdt', 'metad', 'dpsdtcor', 'dpsdt')}
   vector[N] stim_sign;
+  //ce
+  //cb{model %in% c('dpsdtcor', 'dpsdt')}
+  vector[N] modifier;
   //ce
   //cb,fpariter
   int<lower=1> PAR_size;
@@ -113,7 +116,7 @@ transformed parameters{
   //ce
   vector[K + 1] multinomial_cum;
   vector[K] multinomial_p[N];
-  //cb{model %in% c('sdt', 'uvsdt')}
+  //cb{model %in% c('sdt', 'uvsdt', 'dpsdtcor', 'dpsdt')}
   real shift;
   //ce
   //cb{model == 'metad'}
@@ -155,7 +158,7 @@ transformed parameters{
     PAR_ranef = PAR_ranef + PAR_random_G[PAR_group_G[n]] * Z_PAR_G[n]';
     //ce
     // Applying the inverse link functions
-    gamma = gamma_fixef;
+    // gamma = gamma_fixef;
     gamma = gamma_fixef + gamma_ranef;    
     //cb{links$gamma == 'identity'}
     for(k in 1:(K - 1))
@@ -212,20 +215,28 @@ transformed parameters{
     //cb{par != 'gamma' && links[[par]] == 'log'},fpariter
     PAR_ = exp(PAR_fixef + PAR_ranef);
     //ce
+    //cb{par != 'gamma' && links[[par]] == 'logit'},fpariter
+    PAR_ = inv_logit(PAR_fixef + PAR_ranef);
+    //ce
     //cb{par != 'gamma' && links[[par]] == 'id_log'},fpariter
     for(i in 1:PAR_size)PAR_[i] = PAR_fixef[i] * exp(PAR_ranef[i]);
+    //ce
+    //cb{par != 'gamma' && links[[par]] == 'log_logit'},fpariter
+    PAR_ = PAR_fixef + PAR_ranef;
+    PAR_[1] = exp(PAR_[1]);
+    PAR_[2] = inv_logit(PAR_[2]);
     //ce
     // Likelihood
     multinomial_cum[1] = 0;
     multinomial_cum[K + 1] = 1;
-    //cb{model %in% c('sdt', 'uvsdt')}
+    //cb{model %in% c('sdt', 'uvsdt', 'dpsdtcor', 'dpsdt')}
     shift = -0.5 * stim_sign[n] * delta_[1];
     //ce
     //cb{model == 'metad'}
     shift1 = -0.5 * stim_sign[n] * delta_[1];
     shift2 = -0.5 * stim_sign[n] * delta_[2];
     //ce
-    //cb{model == 'sdt'}
+    //cb{model %in% c('sdt', 'dpsdtcor', 'dpsdt')}
     for(k in 1:(K - 1))
       multinomial_cum[k + 1] = Phi(gamma_[k] + shift);
     //ce
@@ -266,6 +277,26 @@ transformed parameters{
     //cb{model != 'metad'}
     for(k in 1:K)
       multinomial_p[n, k] = multinomial_cum[k + 1] - multinomial_cum[k];
+    //ce
+    //cb{model == 'dpsdtcor'}
+    for(k in 1:K)
+      multinomial_p[n, k] = (1 - delta_[2]) * multinomial_p[n, k];
+    if(stim_sign[n] > 0){
+      multinomial_p[n, K] = multinomial_p[n, K] + delta_[2];
+    }else{
+      multinomial_p[n, 1] = multinomial_p[n, 1] + delta_[2];
+    }
+    //ce
+    //cb{model == 'dpsdt'}
+    if(modifier[n] == 1){
+      for(k in 1:K)
+        multinomial_p[n, k] = (1 - theta_[1]) * multinomial_p[n, k];
+      if(stim_sign[n] > 0){
+        multinomial_p[n, K] = multinomial_p[n, K] + theta_[1];
+      }else{
+        multinomial_p[n, 1] = multinomial_p[n, 1] + theta_[1];
+      }
+    }
     //ce
   }
 }

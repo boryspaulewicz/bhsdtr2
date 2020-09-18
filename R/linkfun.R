@@ -8,6 +8,10 @@ linkfun = function(link){res = NULL
     ## if id_log, then condition.specific.samples takes care of the log part for random effects
     if(link == 'id_log') res = function(samples, ...)samples
     if(link == 'log') res = function(samples, ...)exp(samples)
+    if(link == 'logit') res = function(samples, ...)binomial()$linkinv((samples))
+    if(link == 'log_logit')
+        res = function(samples, ...)
+            cbind(exp(samples[, 1]), binomial()$linkinv((samples[, 2])))
     if(link == 'log_ratio')
         res = function(samples, K, ...){
             criteria = matrix(nrow = nrow(samples), ncol = K - 1)
@@ -68,5 +72,4 @@ linkfun = function(link){res = NULL
             t(apply(exp(cbind(samples, 0)), 1,
                     function(x) thresholds_scale * stats::qnorm(cumsum(x/sum(x))[-length(x)])))
     res
-
 }

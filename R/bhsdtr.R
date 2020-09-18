@@ -45,6 +45,7 @@
 ##' @param force.id_log If FALSE (the default) separate intercepts
 ##'     parametrization will be required for the delta / d' / meta-d'
 ##'     model matrices when using the id_log link function.
+##' @param fit If TRUE (the default) then also fit the model
 ##' @param ... arguments to be passed to the stan function.
 ##' @return a bhsdtr_model object, which is an S3 class object, so you
 ##'     can easily access its insides. If it was fitted using the jmap
@@ -86,7 +87,7 @@
 ##' @export
 bhsdtr = function(model_formulae, response_formula, data,
                   links = list(gamma = 'log_distance'), method = 'jmap',
-                  prior = list(), sample.prior = F, thresholds_scale = 2, force.id_log = F, ...){
+                  prior = list(), sample.prior = F, thresholds_scale = 2, force.id_log = F, fit = T, ...){
     if(method == 'ml'){
         method = 'jmap'
         stop('method = \'ml\' is no longer a valid argument, use method = \'jmap\' instead.
@@ -142,6 +143,10 @@ The fitted object will be stored in the $jmapfit field of the bhsdtr model objec
         model = 'metad'
     }else if(setequal(pars, c('metad', 'thr', 'sdratio'))){
         model = 'uvmetad'
+    }else if(setequal(pars, c('dprimr', 'thr'))){
+        model = 'dpsdtcor'
+    }else if(setequal(pars, c('dprim', 'thr', 'R'))){
+        model = 'dpsdt'
     }else if(setequal(pars, c('mean', 'thr'))){
         model = 'ordinal'
     }else{
@@ -151,15 +156,17 @@ The fitted object will be stored in the $jmapfit field of the bhsdtr model objec
     ## or resp ~ 1 (ordinal family) allowed
     resp.stim.model.frame = model.frame(response_formula, data)
     resp.stim.vnames = names(get_all_vars(response_formula, data))
-    if(ncol(resp.stim.model.frame) > 2)
-        stop(sprintf('Response formula must be of the form response_variable ~ stimulus_variable or response_variable ~ 1: %s',
+    if(ncol(resp.stim.model.frame) > 3)
+        stop(sprintf('Response formula must be of the form response_variable ~ stimulus_variable [+ modifier] or response_variable ~ 1: %s',
                      as.character(response_formula)))
     ## We do not allow for gaps in the response variable e.g., 1, 1,
     ## 2, 4, 5 (no 3s) nor in the stimulus variable: all integers
     ## between 1 and max(stim) or max(resp) have to be present.
     resp.stim.vars = list(resp = fix.index.gaps(resp.stim.model.frame[, 1], names(resp.stim.vnames)[1], T))
-    if(length(resp.stim.vnames) == 2){
+    if(length(resp.stim.vnames) > 1){
         resp.stim.vars$stim = fix.index.gaps(resp.stim.model.frame[, 2], resp.stim.vnames[2], T)
+        if(length(resp.stim.vnames) > 2)
+            resp.stim.vars$modifier = resp.stim.model.frame[, 3]
     }else{
         ## dummy stimulus variable (response_formula was of the form
         ## resp ~ 1)
@@ -176,10 +183,15 @@ The fitted object will be stored in the $jmapfit field of the bhsdtr model objec
     ## checking if the link functions are valid, inferring the default
     ## link functions for omitted parameters
     links = fill.model.links(model, fixed, random, links, adata$data, K)
-    ## Creatinng data structures and model code for stan
-    sdata = list(N = nrow(adata$data), K = K, Kb2 = round(K / 2), PRINT = 0,
-                 unbiased = fix.stan.dim(unbiased(K)), thresholds_scale = thresholds_scale,
-                 counts = res$counts)
+    ## Creating data structures and model code for stan
+    sdata = list(N = nrow(adata$data),
+                 K = K,
+                 Kb2 = round(K / 2),
+                 PRINT = 0,
+                 unbiased = fix.stan.dim(unbiased(K)),
+                 thresholds_scale = thresholds_scale,
+                 counts = res$counts,
+                 modifier = adata$modifier)
     rm(res)
     ## in SDT models stim_sign = -1, 1 (this variable slightly simplifies the model code)
     sdata$stim_sign = 2 * as.numeric(as.factor(as.character(adata$stimulus))) - 3
@@ -197,12 +209,14 @@ The fitted object will be stored in the $jmapfit field of the bhsdtr model objec
         m = do.call(set.prior, prior)
     }
     m$code = parse.model.code(m)
-    if(sample.prior){
-        method = 'stan'
-        m = fit(m, method, ...)
-        m = fit(m, method, sample.prior = T, ...)
-    }else if(method %in% c('jmap', 'stan'))
-        m = fit(m, method, ...)
+    if(fit){
+        if(sample.prior){
+            method = 'stan'
+            m = fit(m, method, ...)
+            m = fit(m, method, sample.prior = T, ...)
+        }else if(method %in% c('jmap', 'stan'))
+            m = fit(m, method, ...)
+    }
     m
 }
 
@@ -278,19 +292,20 @@ sdata.matrices = function(sdata, adata, fixed, random, model, links, force.id_lo
 aggregate.data = function(data, resp.stim.vars, K){
     vnames = names(data)
     ## Unique stimulus and response names for aggregation
-    resp.stim.unique.names = c(resp = NA, stim = NA)
-    for(i in 1:2){
+    resp.stim.unique.names = c(resp = NA, stim = NA, modifier = NULL)
+    for(i in 1:length(resp.stim.vars)){
         ## unique names for resp and stim, _ is safe, some other
         ## choices (e.g., @) result in error
         resp.stim.unique.names[names(resp.stim.vars)[i]] = paste(c(names(resp.stim.vars)[i], vnames), collapse = '_')
-        ## add uniquely named resp and stim vars to data
+        ## add uniquely named resp and stim and modifier vars to data
         data[[resp.stim.unique.names[i]]] = resp.stim.vars[[i]]
     }
     ## Removing NA rows
     for(v in names(data))
         data = data[!is.na(data[[v]]),]
     ## aggregation
-    res = plyr::ddply(data, unique(c(vnames, resp.stim.unique.names[names(resp.stim.vars) == 'stim'])),
+    res = plyr::ddply(data, unique(c(vnames, resp.stim.unique.names[names(resp.stim.vars) == 'stim'],
+                                     resp.stim.unique.names[names(resp.stim.vars) == 'modifier'])),
                       ## We are adding the 1:K vector to make sure
                       ## that the counts for every k are here, the -1
                       ## term corrects for this
@@ -299,12 +314,19 @@ aggregate.data = function(data, resp.stim.vars, K){
     ## aggregated data object
     adata = list(data = res[, setdiff(vnames, resp.stim.unique.names), drop = F])
     adata$stimulus = res[[resp.stim.unique.names[names(resp.stim.vars) == 'stim']]]
+    if(length(resp.stim.vars) == 3){
+        adata$modifier = res[[resp.stim.unique.names[names(resp.stim.vars) == 'modifier']]]
+    }else{
+        adata$modifier = rep(1, nrow(adata$data))
+    }
     list(adata = adata, counts = counts)
 }
 
 fill.model.links = function(model, fixed, random, links, data, K){
     model_pars = list(sdt = c('delta', 'gamma'),
                       metad = c('delta', 'gamma'),
+                      dpsdtcor = c('delta', 'gamma'),
+                      dpsdt = c('delta', 'gamma', 'theta'),
                       uvmetad = c('delta', 'gamma', 'theta'),
                       uvsdt = c('delta', 'gamma', 'theta'),
                       ordinal = c('eta', 'gamma'))
@@ -316,19 +338,25 @@ fill.model.links = function(model, fixed, random, links, data, K){
         stop(sprintf('Found %s link specification but no model formula(e)',
                      paste(names(links)[!(names(links) %in% pars)], collapse = ', ')))
     ## data df = 2K - 2, uvsdt df = K - 1 + 2, 2K - 2 = K + 1 -> K = 3
-    if((K < 3) & (model %in% c('uvsdt', 'metad')))
+    if((K < 3) & (model %in% c('uvsdt', 'metad', 'dpsdtcor')))
         stop(sprintf('Model %s needs K > 2', model))
     par_links = list(gamma = c('log_distance', 'log_ratio', 'softmax', 'twoparameter', 'parsimonious', 'identity'),
-                     delta = c('log', 'id_log', 'identity'),
-                     theta = c('log'),
+                     delta = c('log', 'id_log', 'log_logit', 'identity'),
+                     theta = c('log', 'logit'),
                      eta = c('identity'))
     for(par in names(links))
         if(!(links[[par]] %in% par_links[[par]]))
             stop(sprintf('Link %s not allowed for %s', links[[par]], par))
     ## Fill the missing fields in the links list
     for(par in model_pars[[model]])
-        if(!(par %in% names(links)))
+        if(!(par %in% names(links))){
             links[[par]] = par_links[[par]][1]
+        }
+    ## For some models some links are forced
+    if(model == 'dpsdt')
+        links$theta = 'logit'
+    if(model == 'dpsdtcor')
+        links$delta = 'log_logit'
     links
 }
 ## Ok
@@ -346,6 +374,8 @@ par.size = function(par, model, links, K){
         s = list(sdt = c(delta = 1),
                  uvsdt = c(delta = 1, theta = 1),
                  metad = c(delta = 2),
+                 dpsdtcor = c(delta = 2),
+                 dpsdt = c(delta = 1, theta = 1),
                  uvmetad = c(delta = 2, theta = 1),
                  ordinal = c(eta = 1),
                  uvordinal = c(eta = 1, theta = 1))[[model]][par]

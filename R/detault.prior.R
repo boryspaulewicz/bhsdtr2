@@ -1,6 +1,8 @@
 ## -*- coding: utf-8 -*-
 
 ## len is the number of columns of the prior matrix, e.g., par == 'delta', prior.par == 'fixed_mu'
+
+##' @export
 default.prior = function(par, len, prior.par, model, links, K){
     prior.par.original = prior.par
     if(prior.par == 'random_scale')
@@ -12,6 +14,16 @@ default.prior = function(par, len, prior.par, model, links, K){
                   delta = list(), gamma = list())
     priors[[par]][['random_nu']] = 1
     priors[[par]][['fixed_lb']] = priors[[par]][['fixed_ub']] = priors[[par]][['random_scale_lb']] = priors[[par]][['random_scale_ub']] = ''
+    if(par == 'theta' & model == 'dpsdt'){
+        fixed_mu = -2.2
+        if(prior.par.original == 'random_scale'){
+            fixed_sd = 4
+        }else{
+            fixed_sd = 10^6
+        }
+        priors$theta$fixed_mu = fixed_mu
+        priors$theta$fixed_sd = fixed_sd
+    }
     if(par == 'delta')
         if(links$delta == 'id_log')
             priors$delta$lb = '0'
@@ -28,19 +40,26 @@ default.prior = function(par, len, prior.par, model, links, K){
             }else{
                 fixed_sd = .5 * (exp(acc.to.delta(.99)) - exp(acc.to.delta(.51)))
             }
-        }else if(links$delta == 'log'){
+        }else if(links$delta %in% c('log')){
             fixed_mu = .5 ## acc.to.delta(.75)
             if(prior.par.original == 'random_scale'){
                 fixed_sd = 4
             }else{
                 fixed_sd = 1 ## .5 * (acc.to.delta(.99) - acc.to.delta(.51))
             }
+        }else if(links$delta == 'log_logit'){
+            fixed_mu = c(.5, -2.2) ## r ~= .1
+            if(prior.par.original == 'random_scale'){
+                fixed_sd = 4
+            }else{
+                fixed_sd = c(1, 10^6) ## .5 * (acc.to.delta(.99) - acc.to.delta(.51))
+            }
         }
         priors$delta$fixed_mu = fixed_mu
         priors$delta$fixed_sd = fixed_sd
-        if(model == 'metad')
-            for(prior.par in names(priors$delta))
-                priors$delta[[prior.par]] = rep(priors$delta[[prior.par]], 2)
+        ## if(model %in% c('metad'))
+        ##     for(prior.par in names(priors$delta))
+        ##         priors$delta[[prior.par]] = rep(priors$delta[[prior.par]], 2)
     }
     ## prior for gamma depends on the link function
     if(links$gamma == 'twoparameter'){

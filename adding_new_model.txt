@@ -1,0 +1,15 @@
+linkfun.R - introduce a link function if necessary
+
+bhsdtr.R:
+
+ bhsdtr - alter the code after #inferring model type
+
+ fill.model.links - alter model_pars list
+
+ par.size
+
+default.prior.R
+
+samples.R - alter par.to.linked
+
+plot.R - in plot.pointest see sdt_models

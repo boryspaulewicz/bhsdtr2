@@ -114,7 +114,8 @@ plot.bhsdtr_model = function(x, vs = NULL, type = 'response', alpha = .05, bw = 
 pointest.plot = function(jmapfit, model_code, model, adata, sdata, vs = NULL, bw = FALSE){
     pointest = matrix(jmapfit$par[grep('multinomial_p', names(jmapfit$par))], nrow = max(1, nrow(adata$data)))
     obs = t(apply(sdata$counts, 1, function(x)(x / sum(x))))
-    if(model %in% c('sdt', 'uvsdt', 'metad'))
+    sdt_models = c('sdt', 'uvsdt', 'metad', 'dpsdtcor', 'dpsdt')
+    if(model %in% sdt_models)
         stim = as.factor(adata$stimulus)
     if(is.null(vs)){
         f = as.factor(adata$data[,1])
@@ -130,7 +131,7 @@ pointest.plot = function(jmapfit, model_code, model, adata, sdata, vs = NULL, bw
     df = data.frame(f = rep(f, ncol(pointest)), th = rep(1:ncol(pointest), each = length(f)),
                     pointest = as.vector(pointest), obs = as.vector(obs))
     aggregation.vs = c('th', 'f')
-    if(model %in% c('sdt', 'uvsdt', 'metad')){
+    if(model %in% sdt_models){
         df$stim = rep(stim, ncol(pointest))
         aggregation.vs = c(aggregation.vs, 'stim')
     }
@@ -138,7 +139,7 @@ pointest.plot = function(jmapfit, model_code, model, adata, sdata, vs = NULL, bw
     adf$fit = aggregate(df$pointest, df[, aggregation.vs], mean)$x
     title = sprintf('Lines = model: %s, points = observed response distribution', model)
     yl = 'p(Response)'
-    if(model %in% c('sdt', 'uvsdt', 'metad')){
+    if(model %in% sdt_models){
         xl = 'Response = Decision + Rating'
         p = ggplot(adf, aes(th, x, group = stim, color = stim)) +
             geom_line(aes(y = fit)) +
