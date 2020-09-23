@@ -42,17 +42,19 @@ samples = function(m, par, group = NULL, prior = F, ...){
             if(m$links$delta == 'id_log')
                 stop('Sampling truncated normal not yet implemented')
     }else{
-        result = condition.specific.samples(m, par2, group, ...)
+        result_ = result = condition.specific.samples(m, par2, group, ...)
     }
-    ## par2_size_ because e.g., gamma_size_ > gamma_size when link = 'parsimonious' or 'twoparameter'
-    result_ = array(dim = c(dim(result)[1], m$sdata[[sprintf('%s_size_', par2)]], dim(result)[3]))
-    ## i is condition number
-    for(i in 1:(dim(result)[3]))
-        result_[,,i] = fun(matrix(result[,,i], nrow = dim(result)[1]),
-                        m$sdata$K, m$sdata$thresholds_scale)
-    for(i in c(1, 3))
-        dimnames(result_)[i] = dimnames(result)[i]
-    dimnames(result_)[2] = list(paste(par, 1:dim(result_)[2], sep = '.'))
+    if(par != par2){
+        ## par2_size_ because e.g., gamma_size_ > gamma_size when link = 'parsimonious' or 'twoparameter'
+        result_ = array(dim = c(dim(result)[1], m$sdata[[sprintf('%s_size_', par2)]], dim(result)[3]))
+        ## i is condition number
+        for(i in 1:(dim(result)[3]))
+            result_[,,i] = fun(matrix(result[,,i], nrow = dim(result)[1]),
+                               m$sdata$K, m$sdata$thresholds_scale)
+        for(i in c(1, 3))
+            dimnames(result_)[i] = dimnames(result)[i]
+        dimnames(result_)[2] = list(paste(par, 1:dim(result_)[2], sep = '.'))
+    }
     class(result_) = c('bhsdtr_samples', class(result_))
     attr(result_, 'data') = attr(result, 'data')
     result_
@@ -60,8 +62,8 @@ samples = function(m, par, group = NULL, prior = F, ...){
 
 ## e.g., dprim -> delta
 par.to.linked = function(par)
-    if(any(par %in% c('dprim', 'metad', 'sdratio', 'thr', 'mean', 'dprimr', 'R'))){
-        c(dprim = 'delta', metad = 'delta', sdratio = 'theta', thr = 'gamma', mean = 'eta', dprimr = 'delta', R = 'theta')[par]
+    if(any(par %in% c('dprim', 'metad', 'sdratio', 'thr', 'mean', 'dprimr', 'R', 'r'))){
+        c(dprim = 'delta', metad = 'delta', sdratio = 'theta', thr = 'gamma', mean = 'eta', dprimr = 'delta', R = 'theta', r = 'theta')[par]
     }else{
         par
     }

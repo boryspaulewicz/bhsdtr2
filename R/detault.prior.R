@@ -3,7 +3,10 @@
 ## len is the number of columns of the prior matrix, e.g., par == 'delta', prior.par == 'fixed_mu'
 
 ##' @export
-default.prior = function(par, len, prior.par, model, links, K){
+default.prior = function(m, par, len, prior.par){
+    model = m$model
+    links = m$links
+    K = m$sdata$K
     prior.par.original = prior.par
     if(prior.par == 'random_scale')
         prior.par = 'fixed_sd'
