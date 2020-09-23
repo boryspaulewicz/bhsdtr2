@@ -2,6 +2,27 @@
 
 ##' Creating and fitting ordinal models with ordered thresholds
 ##'
+##' This is the main method of fitting ordinal models in the bhsdtr2
+##' package. The model type (e.g., SDT, UV SDT, DPSDT, meta-d') is
+##' inferred automatically based on the supplied model formulae. An EV
+##' SDT model is fitted if the user provides model formulae for dprim
+##' and thr, a meta-d' model is fitted if there is a formula for the
+##' metad parameter vector, an UV version is fitted if there is
+##' formula for the sd_ratio parameter. Fitting an DPSDT model is a
+##' bit more complicated because there are two different versions of
+##' this model and because the probability of recall may be non-zero
+##' only for one stimulus class (e.g., "single-interval" tasks) or for
+##' both stimulus classes (2AFC tasks). In order to fit an DPSDT model
+##' the user has to introduce a recall indicator in the
+##' response_formula, e.g., resp ~ stim + possible_recall, where
+##' possible_recall is 1 iff recall is possible (a correct response
+##' with maximum confidence) on that trial. If d' and R may be
+##' correlated, then the user may model the dprimr parameter vector
+##' (the first element is the d' parameter, the second element is R),
+##' otherwise three formulas have to be provided: one for dprim, one
+##' for thr, and one for R. At present, only the logit link function
+##' is implemented for the R parameter.
+##' 
 ##' @param model_formulae a vector of two or more lmer-style model
 ##'     formulae for the parameters of the model. Every such vector
 ##'     must contain a model formula for the thr (=thresholds)
@@ -71,7 +92,7 @@
 ##'     ## Thresholds
 ##'     samples(m.jmap, 'thr')
 ##' 
-##'     ## Fitting the model using stan
+##'     ## Fitting the model using the Stan sampler
 ##'     m.stan = bhsdtr(c(dprim ~ duration * order + (duration | id), thr ~ order + (1 | id)),
 ##'                     r ~ stim,
 ##'                     gabor, method = 'stan')
@@ -80,8 +101,9 @@
 ##'     ## This is how you can access the stanfit object
 ##'     print(m.stan$stanfit, probs = c(.025, .975), pars = c('delta_fixed', 'gamma_fixed'))
 ##' 
-##'     ## This is how you can see if the model fits. Here we specify the variables (duration
-##'     ## and order) to see only the duration x order panels.
+##'     ## The plot method lets you see if the model fits. Here we
+##'     ## specify the variables (duration and order) to see only
+##'     ## the duration x order panels.
 ##'     library(ggplot2)
 ##'     plot(m.stan, vs = c('duration', 'order'), verbose = F)
 ##' 

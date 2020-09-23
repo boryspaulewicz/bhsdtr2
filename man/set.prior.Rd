@@ -15,8 +15,9 @@ parameters, e.g., delta_prior_fixed_mu = log(1.5),
 delta_prior_fixed_sd = 2. Note that with the exception of nu
 (lkj prior), the prior parameters are internally represented
 as matrices of dimension DxC, where D is the dimensionality of
-the parameter (delta has 2 in the meta-d' model, otherwise it
-has 1, theta has 1, eta has 1, gamma has K - 1, unless the
+the parameter (delta has 2 in the meta-d' and the dpsdt with
+correlated d' and R random effects models, otherwise it has 1,
+theta has 1, eta has 1, gamma has K - 1, unless the
 twoparameter or the parsimonious link function is used, in
 which case it has dim = 2) and C is the number of columns in
 the fixed (<par>_prior_fixed_mu, <par>_prior_fixed_sd) or the

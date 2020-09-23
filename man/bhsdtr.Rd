@@ -29,38 +29,40 @@ for the sdratio (Unequal Variance models) parameter.}
 
 \item{response_formula}{a formula specifying the names of the
 response variable and the stimulus variable. If this is an
-SDT-like model this must be of the form resp ~ stim, where
-resp is the name of the combined response variable or the
-binary response variable, and stim is the name of the (binary)
-stimulus variable.}
+SDT-like model this must be of the form resp ~ stim [+
+modifier], where resp is the name of the combined response
+variable or the binary response variable, stim is the name of
+the (binary) stimulus variable, and the optional modifier
+indicates something model-specific (e.g., the possibility of
+recall in DPSDT).}
 
 \item{links}{a list specyfing the link functions, the default is
 list(gamma = 'log_distance'). This list will be filled with
 the default link function specifications for the remaining
-parameters if the link functions for the remaining parameters
-are not specified. Currently you can set gamma to
-'log_distance' (the default), 'log_ratio', 'twoparameter',
-'parsimonious', and 'softmax'. The log_distance and log_ratio
-link functions are described in the Readme file in the github
-repository, the parsimonious link function represents the
-thresholds using two parameters, the unconstrained main
-criterion and the logarithm of the scaling factor which is
-used to stretch the "unbiased" thresholds so that the
-distribution of responses fits. The softmax link function is
-described in the bhsdtr preprint. You can also choose between
-delta = 'log' (the default, which covers both the d' and the
-meta-d' parameters), and delta = 'identity' (i.e., no
-conversion between delta and d' or meta-d').}
+parameters if these are not specified. Currently you can set
+gamma to 'log_distance' (the default), 'log_ratio',
+'twoparameter', 'parsimonious', and 'softmax'. The
+log_distance and log_ratio link functions are described in the
+Readme file in the github repository, the parsimonious link
+function represents the thresholds using two parameters, the
+unconstrained main criterion and the logarithm of the scaling
+factor which is used to stretch the "unbiased" thresholds so
+that the distribution of responses fits. The softmax link
+function is described in the bhsdtr preprint. You can also
+choose between delta = 'log' (the default, which covers both
+the d' and the meta-d' parameters), and delta = 'identity'
+(i.e., no conversion between delta and d' or meta-d').}
 
 \item{method}{[= 'jmap'] a string which specifies how to fit the
 model. The default is 'jmap', which results in an attempt to
-quickly maximize the joint posterior by using the optimizing
-function, but you can also choose 'stan', or, if you do not
-want the model to be fitted right away, you can use anything
-else.}
+quickly maximize the joint posterior by using the
+rstan::optimizing function, but you can also choose 'stan',
+or, if you do not want the model to be fitted right away, you
+can use anything else.}
 
-\item{prior}{[= NULL] a list with non-default prior settings. See
-the set.prior function for details.}
+\item{prior}{[= NULL] a list with non-default prior settings which
+will be passed to the set.prior function. See the set.prior
+function documentation for details.}
 
 \item{thresholds_scale}{thresholds scaling factor for the softmax
 gamma link function (see the bhsdtr preprint).}
@@ -74,12 +76,33 @@ model matrices when using the id_log link function.}
 \item{...}{arguments to be passed to the stan function.}
 }
 \value{
-a bhsdtr_model object, which is an S3 class object, so you
-    can easily access its insides. If it was fitted using the jmap
-    (stan) method, $jmapfit ($stanfit) contains the result.
+a bhsdtr_model object, which is an S3 class object. If it
+    was fitted using the jmap (stan) method, $jmapfit ($stanfit)
+    contains the result. You can refit the model using either
+    method (fit(model, ...)) and the $jmapfit or the $stanfit slot
+    will be updated.
 }
 \description{
-Creating and fitting ordinal models with ordered thresholds
+This is the main method of fitting ordinal models in the bhsdtr2
+package. The model type (e.g., SDT, UV SDT, DPSDT, meta-d') is
+inferred automatically based on the supplied model formulae. An EV
+SDT model is fitted if the user provides model formulae for dprim
+and thr, a meta-d' model is fitted if there is a formula for the
+metad parameter vector, an UV version is fitted if there is
+formula for the sd_ratio parameter. Fitting an DPSDT model is a
+bit more complicated because there are two different versions of
+this model and because the probability of recall may be non-zero
+only for one stimulus class (e.g., "single-interval" tasks) or for
+both stimulus classes (2AFC tasks). In order to fit an DPSDT model
+the user has to introduce a recall indicator in the
+response_formula, e.g., resp ~ stim + possible_recall, where
+possible_recall is 1 iff recall is possible (a correct response
+with maximum confidence) on that trial. If d' and R may be
+correlated, then the user may model the dprimr parameter vector
+(the first element is the d' parameter, the second element is R),
+otherwise three formulas have to be provided: one for dprim, one
+for thr, and one for R. At present, only the logit link function
+is implemented for the R parameter.
 }
 \examples{
 \donttest{
@@ -98,7 +121,7 @@ Creating and fitting ordinal models with ordered thresholds
     ## Thresholds
     samples(m.jmap, 'thr')
 
-    ## Fitting the model using stan
+    ## Fitting the model using the Stan sampler
     m.stan = bhsdtr(c(dprim ~ duration * order + (duration | id), thr ~ order + (1 | id)),
                     r ~ stim,
                     gabor, method = 'stan')
@@ -107,8 +130,10 @@ Creating and fitting ordinal models with ordered thresholds
     ## This is how you can access the stanfit object
     print(m.stan$stanfit, probs = c(.025, .975), pars = c('delta_fixed', 'gamma_fixed'))
 
-    ## This is how you can see if the model fits. Here we specify the variables (duration
-    ## and order) to see only the duration x order panels.
+    ## The plot method lets you see if the model fits. Here we
+    ## specify the variables (duration and order) to see only
+    ## the duration x order panels.
+    library(ggplot2)
     plot(m.stan, vs = c('duration', 'order'), verbose = F)
 
     ## A simple contrast calculated on the posterior threshold samples
