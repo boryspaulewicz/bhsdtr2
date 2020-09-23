@@ -43,7 +43,8 @@ by default the log link function is used for d’, i.e.,:
 
 log(d’) = delta = some (possibly hierachical) linear regression model
 
-which forces d’ to be non-negative (see the bhsdtr paper for a detailed
+which forces d’ to be non-negative (see [the bhsdtr
+paper](https://doi.org/10.3758/s13428-020-01370-y) for a detailed
 explanation of why this is important) and, because log maps the
 non-negative (0,Inf) interval of possible d’ values into the (-Inf, Inf)
 interval of all reals, arbitrary positive or negative effects in delta =
@@ -55,16 +56,16 @@ What happens when you ignore a non-negligible effect in a non-linear model analy
 In general, it is true that you do not have to model every effect that
 can be detected in the data. In fact, sometimes just by adding a
 predictor you can *introduce* bias (if this surprises you google e.g.,
-“collider bias”). Suppose you have repeated measures data but you
-decided not to account for the effect of participants, or you only model
-the individual differences in average sensitivity but, since they do not
-interest you that much, you assume that the thresholds are constant
-across participants, or the task difficulty varies with some variable,
-but you do not care about this variable or its effects, so you decided
-not to model them, or you have many different stimuli which can be
-thought of as a (not necessarily random) sample, but you have already
+“collider bias”). However, suppose you have repeated measures data but
+you decided not to account for the effect of participants, or you only
+model the individual differences in average sensitivity but, since they
+do not interest you that much, you assume that the thresholds are
+constant across participants, or the task difficulty varies with some
+variable, but you do not care about this variable or its effects, so you
+decided not to model them, or you have many different stimuli which can
+be thought of as a (not necessarily random) sample, but you have already
 included the random effect of participants, so you decided not to model
-the effect of the stimuli, etc. So, what can go wrong?
+the effect of the stimuli, etc. What can go wrong?
 
 The short answer is everything can esily go wrong, and badly. Ordinal
 models are *non-linear*. An immediate consequence of non-linearity is
@@ -75,50 +76,36 @@ all the model parameters may be, and usually are, *asymptotically
 biased*, often severely so (see this
 [paper](http://rouder.psyc.missouri.edu/sites/default/files/morey-jmp-zROC-2008_0.pdf)
 by Morey, Pratte, and Rouder for a demonstration in the context of SDT
-analysis, or see our
-[preprint](http://dx.doi.org/10.23668/psycharchives.2725) for an even
-more striking demonstration).
+analysis, or see [the bhsdtr
+paper](https://doi.org/10.3758/s13428-020-01370-y) for an even more
+striking demonstration).
 
-\[By definition\]
-(<a href="https://en.wikipedia.org/wiki/Nonlinear_system" class="uri">https://en.wikipedia.org/wiki/Nonlinear_system</a>),
-a non-linear model does not preserve addition or multiplication by a
+[By definition](https://en.wikipedia.org/wiki/Nonlinear_system), a
+non-linear model does not preserve addition or multiplication by a
 scalar, which means that it does not preserve averaging. For example:
 
 ``` r
 x = 1:10
-y = x^2
-mean(y)
-```
-
-    [1] 38.5
-
-``` r
 mean(x^2)
 ```
 
     [1] 38.5
 
 ``` r
-mean(sqrt(y))
+mean(sqrt(x^2))
 ```
 
     [1] 5.5
 
 ``` r
-mean(x)
-```
-
-    [1] 5.5
-
-``` r
-## Averaging first is incorrect
+## Averaging first changes the result
 mean(x)^2
 ```
 
     [1] 30.25
 
 ``` r
-sqrt(mean(y))
+sqrt(mean(x^2))
 ```
 
     [1] 6.204837
@@ -129,26 +116,26 @@ this variable. The only correct solution to this problem is to model the
 effects of all the relevant variables, including the (possibly
 correlated) “random” effects of all the relevant grouping factors. That
 is why you typically need to supplement a non-linear model with
-something like a (usually hierarchical) regression structure.
+something like a (hierarchical, if there are repeated measures)
+regression structure.
 
 In the bhsdtr2 package, ordinal models are supplemented with a
 hierarchical linear regression structure thanks to a novel
-parametrization described in this
-[paper](https://doi.org/10.3758/s13428-020-01370-y) and - more concisely
-- in the package documentation. At present, *bhsdtr and bhsdtr2 are the
+parametrization described in [the bhsdtr
+paper](https://doi.org/10.3758/s13428-020-01370-y) and, more concisely,
+in the package documentation. At present, *bhsdtr and bhsdtr2 are the
 only correct general-purpose implementations of hierarchical ordinal
 models with ordered thresholds*. That’s because of the order-preserving
 link functions which allow for variability in individual thresholds,
-while respecting the ordering assumption (see the bhsdtr paper for more
-details). Without the order-preserving link functions, it is impossible
-to correctly model the effects in *individual* thresholds, including the
-ubiquitous individual differences in the *pattern* of threshold
-placement. Note that the bhsdtr paper covers only the SDT model and only
-one order-preserving link function, whereas in the current version of
-the bhsdtr2 package there are five such functions (softmax,
-log\_distance, log\_ratio, twoparamter and parsimonious) and quite a few
-new models, including the general ordinal model (see the cumulative
-function documentation).
+while respecting the ordering assumption. Without the order-preserving
+link functions, it is impossible to correctly model the effects in
+*individual* thresholds, including the ubiquitous individual differences
+in the *pattern* of threshold placement. Note that the bhsdtr paper
+covers only the SDT model and only one order-preserving link function,
+whereas in the current version of the bhsdtr2 package there are five
+such functions (softmax, log\_distance, log\_ratio, twoparamter and
+parsimonious) and quite a few new models, including the general ordinal
+model (see the cumulative function documentation).
 
 Prerequisites
 -------------
@@ -297,8 +284,8 @@ Here is how you can fit the hierarchical EV Normal SDT model in which we
 assume that d’ depends on duration (dprim \~ duration) and order (… \*
 order), that both the intercept and the effect of duration may vary
 between participants (duration \| id), and the thresholds - which may
-also vary between participants (thr \| id) - depend only on order (thr
-\~ order):
+also vary between participants (1 \| id) - depend only on order (thr \~
+order):
 
 ``` r
 m = bhsdtr(c(dprim ~ duration * order + (duration | id),
@@ -329,9 +316,9 @@ different from the difference of exps. To estimate the difference in d’
 one first has to obtain the estimates of d’ *in each condition* and than
 calculate the difference, not the other way round. Secondly, one of the
 great advantages of having the posterior samples is that arbitrary
-contrasts can be easily computed, which is typically easier when the
-samples represent within-condition estimates. For example, this is how
-we can calculate the 95% HPD intervals for the effect of duration on d’
+contrasts can be computed, which is typically easier when the samples
+represent within-condition estimates. For example, this is how we can
+calculate the 95% HPD intervals for the effect of duration on d’
 averaged over order’:
 
 ``` r
@@ -408,7 +395,7 @@ samples(m, 'metad')
     64 ms:RATING-DECISION    5.48    5.87
 
 Just by changing the link function for the thresholds you can fit the
-parsimonious of an SDT model (here UV):
+parsimonious version of an SDT model (here UV):
 
 ``` r
 m = bhsdtr(c(dprim ~ duration * order + (duration | id),
