@@ -1,3 +1,5 @@
+The R code that was used to perform all the analyses and produce all the plots described in [this preprint](https://psyarxiv.com/e7a3x/) is [here](https://github.com/boryspaulewicz/bhsdtr2/blob/41cc9fd91d65e5a9bbcd61e1a6c33097740b222d/preprint_code.R). 
+
 The bhsdtr2 package overview
 ----------------------------
 
