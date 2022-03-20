@@ -488,7 +488,7 @@ theory, but it often seems to be ignored in other contexts. For
 example, in the context of IRT modelling, this is known as the 'item
 parameter invariance' problem and it is usually reduced to
 Differential Item Functioning (DIF). However, DIF is a
-population-level effect and in no way captures the individual
+population-level effect and in no way captures the *individual*
 differences in the *pattern* of the thresholds.
 
 An *order-preserving link function* is an isomorphic function that

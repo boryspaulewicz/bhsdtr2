@@ -3,17 +3,33 @@
 ##' plot a fitted bhsdtr model
 ##'
 ##' @export
-plot.bhsdtr_model = function(x, vs = NULL, type = 'response', alpha = .05, bw = FALSE, verbose = T, ...){
+plot.bhsdtr_model = function(x, vs = NULL, type = 'response', alpha = .05, bw = FALSE, verbose = T, fit = 'default', ...){
     ## only ~ 1, so no variables in the aggregated data object
+    if(!is.null(vs))
+        if(all(vs == 1)){
+            x$adata$data[paste(names(x$adata$data), collapse = ':')] = 1
+            vs = tail(names(x$adata$data), 1)
+        }
     if(ncol(x$adata$data) == 0)
         x$adata$data = data.frame(x = rep(' ', nrow(x$adata$data)))
-    if(!is.null(x$jmapfit))
+    if(fit == 'default'){
+        if(!is.null(x$stanfit)){
+            fit = 'stan'
+        }else if(!is.null(x$jmapfit)){
+            fit = 'jmap'
+        }else{
+            stop('This model was not fitted')
+        }
+    }
+    if(fit == 'jmap'){
         p = pointest.plot(x$jmapfit, x$code, x$model, x$adata, x$sdata, vs, bw)
-    if(!is.null(x$stanfit)){
-        vs = names(x$adata$data)
-        for(rpar in x$random)
-            for(rg in rpar)
-                vs = setdiff(vs, rg$group.name)
+    }else{
+        if(is.null(vs)){
+            vs = names(x$adata$data)
+            for(rpar in x$random)
+                for(rg in rpar)
+                    vs = setdiff(vs, rg$group.name)
+        }
         s = as.data.frame(x$stanfit)
         cnt_new = t(s[,grep('counts_new', names(s))])
         rm(s)
@@ -71,14 +87,14 @@ plot.bhsdtr_model = function(x, vs = NULL, type = 'response', alpha = .05, bw = 
             dfrocs = dfroc[dfroc$stimulus == '1',]
             dfrocs$stim2 = dfroc[dfroc$stimulus == '2',]
             rm(dfroc)
-            p = ggplot(dfrocs, aes(cumfr, stim2$cumfr)) +
-                geom_line(aes(x = cumfr.fit, y = stim2$cumfr.fit), lty = 2) +
-                geom_errorbar(aes(ymin = stim2$cumfr.lo, ymax = stim2$cumfr.hi, x = cumfr.fit), width = 0.02) +
-                geom_errorbarh(aes(xmin = cumfr.lo, xmax = cumfr.hi, y = stim2$cumfr.fit), height = 0.02) +
-                geom_point() +
-                labs(x = 'p(F)', y = 'p(H)') +
-                coord_fixed() +
-                facet_wrap(~f)
+            p = ggplot2::ggplot(dfrocs, ggplot2::aes(cumfr, stim2$cumfr)) +
+                ggplot2::geom_line(ggplot2::aes(x = cumfr.fit, y = stim2$cumfr.fit), lty = 2) +
+                ggplot2::geom_errorbar(ggplot2::aes(ymin = stim2$cumfr.lo, ymax = stim2$cumfr.hi, x = cumfr.fit), width = 0.02) +
+                ggplot2::geom_errorbarh(ggplot2::aes(xmin = cumfr.lo, xmax = cumfr.hi, y = stim2$cumfr.fit), height = 0.02) +
+                ggplot2::geom_point() +
+                ggplot2::labs(x = 'p(F)', y = 'p(H)') +
+                ggplot2::coord_fixed() +
+                ggplot2::facet_wrap(~f)
             if(bw){
                 p + theme_minimalist()
             }else{
@@ -91,19 +107,19 @@ plot.bhsdtr_model = function(x, vs = NULL, type = 'response', alpha = .05, bw = 
                                                                  apply(cnt_new_a, 2, mean))
             dfa$response = dfa$response + (as.numeric(dfa$stimulus) - 1.5) / 4
             if(bw){
-                p = ggplot(dfa, aes(response, count / n), group = stimulus) +
-                    geom_errorbar(aes(ymin = count.lo / n, ymax = count.hi / n, lty = stimulus), width = 0.2) +
-                    geom_line(aes(y = count.fit / n, lty = stimulus)) +
-                    geom_point(aes(pch = stimulus)) +
-                    labs(x = 'Response', y = 'Frequency', pch = 'Stimulus', lty = 'Stimulus') +
-                    facet_wrap(~f) + theme_minimalist()
+                p = ggplot2::ggplot(dfa, ggplot2::aes(response, count / n), group = stimulus) +
+                    ggplot2::geom_errorbar(ggplot2::aes(ymin = count.lo / n, ymax = count.hi / n, lty = stimulus), width = 0.2) +
+                    ggplot2::geom_line(ggplot2::aes(y = count.fit / n, lty = stimulus)) +
+                    ggplot2::geom_point(ggplot2::aes(pch = stimulus)) +
+                    ggplot2::labs(x = 'Response', y = 'Frequency', pch = 'Stimulus', lty = 'Stimulus') +
+                    ggplot2::facet_wrap(~f) + theme_minimalist()
             }else{
-                p = ggplot(dfa, aes(response, count / n, color = stimulus), group = stimulus) +
-                    geom_errorbar(aes(ymin = count.lo / n, ymax = count.hi / n), width = 0.2) +
-                    geom_line(aes(y = count.fit / n)) +
-                    geom_point(aes(pch = stimulus)) +
-                    labs(x = 'Response', y = 'Frequency', color = 'Stimulus', pch = 'Stimulus') +
-                    facet_wrap(~f)
+                p = ggplot2::ggplot(dfa, ggplot2::aes(response, count / n, color = stimulus), group = stimulus) +
+                    ggplot2::geom_errorbar(ggplot2::aes(ymin = count.lo / n, ymax = count.hi / n), width = 0.2) +
+                    ggplot2::geom_line(ggplot2::aes(y = count.fit / n)) +
+                    ggplot2::geom_point(ggplot2::aes(pch = stimulus)) +
+                    ggplot2::labs(x = 'Response', y = 'Frequency', color = 'Stimulus', pch = 'Stimulus') +
+                    ggplot2::facet_wrap(~f)
             }
             p
         }
@@ -141,20 +157,22 @@ pointest.plot = function(jmapfit, model_code, model, adata, sdata, vs = NULL, bw
     yl = 'p(Response)'
     if(model %in% sdt_models){
         xl = 'Response = Decision + Rating'
-        p = ggplot(adf, aes(th, x, group = stim, color = stim)) +
-            geom_line(aes(y = fit)) +
-            geom_point() +
-            labs(title = title, color = 'Stimulus') + xlab(xl) + ylab(yl) +
-            facet_wrap(~ f)
+        p = ggplot2::ggplot(adf, ggplot2::aes(th, x, group = stim, color = stim)) +
+            ggplot2::geom_line(ggplot2::aes(y = fit)) +
+            ggplot2::geom_point() +
+            ggplot2::labs(title = title, color = 'Stimulus') +
+            ggplot2::xlab(xl) +
+            ggplot2::ylab(yl) +
+            ggplot2::facet_wrap(~ f)
     }else{
         xl = 'Response = Rating'
-        p = ggplot(adf, aes(th, x)) +
-            geom_line(aes(y = fit)) +
-            geom_point() +
-            labs(title = title) +
-            xlab(xl) +
-            ylab(yl) +
-            facet_wrap(~ f)
+        p = ggplot2::ggplot(adf, ggplot2::aes(th, x)) +
+            ggplot2::geom_line(ggplot2::aes(y = fit)) +
+            ggplot2::geom_point() +
+            ggplot2::labs(title = title) +
+            ggplot2::xlab(xl) +
+            ggplot2::ylab(yl) +
+            ggplot2::facet_wrap(~ f)
     }
     if(bw){
         p + theme_minimalist()

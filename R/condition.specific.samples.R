@@ -74,9 +74,15 @@ condition.specific.samples = function(m, par, group = NULL, method = NULL, inclu
         group.index = group.to.index[as.character(data[[group.name]]), 'index']
         for(s in 1:(dim(samples.fixef)[1]))
             for(con in 1:nrow(data)){
-                result.ranef[s,,con] =
-                    ## samples.ranef[s, data[[group.name]][con],,,drop = F] %*% t(Z[con,,drop = F])
-                    samples.ranef[s, group.index[con],,,drop = F] %*% t(Z[con,,drop = F])
+                ##! an ugly hack
+                if(dim(samples.ranef)[4] > 1){
+                    result.ranef[s,,con] =
+                        samples.ranef[s, group.index[con],,] %*% t(Z[con,,drop = F])
+                }else{
+                    result.ranef[s,,con] =
+                        ## samples.ranef[s, data[[group.name]][con],,,drop = F] %*% t(Z[con,,drop = F])
+                        samples.ranef[s, group.index[con],,,drop = F] %*% t(Z[con,,drop = F])
+                }
             }
         if(m$links[[par]] == 'id_log'){
             result = result * exp(result.ranef)
