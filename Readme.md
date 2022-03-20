@@ -33,8 +33,8 @@ Prerequisites
 -------------
 
 A fairly up-to-date version of [R](https://www.r-project.org/) with the
-[devtools
-package](https://cran.r-project.org/web/packages/devtools/index.html)
+[remotes
+package](https://cran.r-project.org/web/packages/remotes/index.html)
 already installed.
 
 Installing the package
@@ -45,7 +45,7 @@ installed directly from this github repository using the devtools
 package:
 
 ``` r
-devtools::install_git('git://github.com/boryspaulewicz/bhsdtr2')
+remotes::install_github('boryspaulewicz/bhsdtr2')
 ```
 
 Usage examples
