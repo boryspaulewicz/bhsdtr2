@@ -4,14 +4,33 @@
 
 ##' @export
 default.prior = function(m, par, len, prior.par){
+    ##! This is not used yet
+    mu_of_normal_for_lognormal = function(lognormal_mu, lognormal_sd)log(lognormal_mu^2/sqrt(lognormal_mu^2 + lognormal_sd^2))
+    var_of_normal_for_lognormal = function(lognormal_mu, lognormal_sd)log(1 + (lognormal_sd/lognormal_mu)^2)
     model = m$model
     links = m$links
     K = m$sdata$K
+    ## Default values for most situations ##! TODO random_scale_lb == ''?
+    if(prior.par %in% c('fixed_lb', 'fixed_ub', 'random_scale_lb', 'random_scale_ub'))
+        out = ''
+    if(prior.par == 'random_nu'){
+        out = 1
+    }else if(par == 'delta'){
+    }else if(par == 'gamma'){
+    }else if(par == 'eta'){
+    }else if(par == 'theta'){
+    }
     prior.par.original = prior.par
+    ## Default sd of the prior for the fixed effect is the same as the default sd of the prior for
+    ## the random effects' sd
     if(prior.par == 'random_scale')
         prior.par = 'fixed_sd'
     unb = unbiased(K)
     Kb2 = round(K / 2)
+    ## Here, we create this list that is later filled with many different priors, even though only
+    ## the matrix for the given par and prior.par is returned by this function, because it seems to
+    ## be more mangable than the very long switch-case kind of structure that would have to be used
+    ## instead
     priors = list(theta = list(fixed_mu = 0, fixed_sd = log(1.5)),
                   eta = list(fixed_mu = 0, fixed_sd = 3),
                   delta = list(), gamma = list())
@@ -27,11 +46,15 @@ default.prior = function(m, par, len, prior.par){
         priors$theta$fixed_mu = fixed_mu
         priors$theta$fixed_sd = fixed_sd
     }
-    if(par == 'delta')
-        if(links$delta == 'id_log')
-            priors$delta$lb = '0'
-    ## prior for delta depends on the model (sdt, metad) and the link
-    ## function
+    ## Lower bounds for id_* link functions. The bounds are always one-dimensional regardless of
+    ## the number of dimensions of the parameter.
+    if(links[[par]] %in% c('id_log', 'id_ratio_log')){
+        if(par == 'delta')
+            priors$delta$fixed_lb = 0
+        if(par == 'gamma'){
+            priors$gamma$fixed_lb = 0
+        }
+    }
     if('delta' %in% names(links)){
         if(links$delta == 'identity'){
             fixed_mu = exp(acc.to.delta(.75))
@@ -86,6 +109,16 @@ default.prior = function(m, par, len, prior.par){
         res.sd[Kb2] = priors$eta$fixed_sd
         priors$gamma$fixed_mu = res.mu
         priors$gamma$fixed_sd = res.sd
+    }else if(links$gamma == 'id_log'){
+        res.sd = rep(priors$eta$fixed_sd, K - 1)
+        if(K > (Kb2 + 1))
+            for(k in (Kb2+1):(K - 1))
+                res.sd[k] = unb[k] - unb[k - 1]
+        if((Kb2 - 1) > 0)
+            for(k in (Kb2 - 1):1)
+                res.sd[k] = unb[k + 1] - unb[k]
+        priors$gamma$fixed_mu = rep(0, K - 1)
+        priors$gamma$fixed_sd = res.sd
     }else if(links$gamma == 'log_ratio'){
         res.mu = rep(0, K - 1)
         res.sd = rep(log(2), K - 1)
@@ -104,5 +137,10 @@ default.prior = function(m, par, len, prior.par){
     }else{
         stop(sprintf('Unknown gamma link %s', links$gamma))
     }
-    matrix(priors[[par]][[prior.par]], nrow = par.size(par, model, links, K)[1], ncol = len)
+    ## Bounds are always one-dimensional
+    if(prior.par %in% c('fixed_lb', 'fixed_ub')){
+        priors[[par]][[prior.par]]
+    }else{
+        matrix(priors[[par]][[prior.par]], nrow = par.size(par, model, links, K)[1], ncol = len)
+    }
 }

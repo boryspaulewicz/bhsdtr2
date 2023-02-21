@@ -12,13 +12,33 @@ gabor$r2 = with(gabor, combined.response(stim, accuracy = acc))
 ## plot jmap
 
 (m = bhsdtr(c(dprim ~ duration + (duration | id), thr ~ 1 + (1 | id)), r ~ stim,
-            gabor[(gabor$order == 'DECISION-RATING'),]))
+            gabor[(gabor$order == 'DECISION-RATING'),],
+            prior = list(gamma_prior_random_scale_1 = 0)))
 
+(m = bhsdtr(c(dprim ~ -1 + duration + (-1 + duration | id), thr ~ 1 + (1 | id)), r ~ stim,
+            gabor[(gabor$order == 'DECISION-RATING'),],
+            links = list(delta = 'id_log')))
+## Najs³absze korelacje z pozosta³ymi efektami losowymi ma odchylenie od ¶redniego kryterium
+## ¶rodkowego.
+round(apply(matrix(res[grepl('^corr_gamma', names(res))], nrow = 7), 2, mean), 2)
+## 0.21 0.26 0.24 0.13 0.22 0.24 0.23
+
+## Korelacje wykazuj± efekt symetrii - odchylenia dla 1go progu koreluj± najsilniej z odchyleniami
+## dla 7go progu, te dla 2go najsilniej z tymi dla 6go, i tak dalej: i najsilniej z 8 - i. To ma
+## sens, bo skrajne oceny to w pewnym sensie te same oceny (ten sam rating, ale ró¿ne decyzje)
+apply(matrix(res[grepl('^corr_gamma', names(res))], nrow = 7), 2, function(x)which(x == max(x[x != 1])))
+## 7 6 5 3 5 2 1
 plot(m)
 plot(m, vs = 'duration')
 
 samples(m, 'dprim')
 samples(m, 'thr')
+
+(m = bhsdtr(c(dprim ~ -1 + duration + (-1 + duration | id), thr ~ 1 + (1 | id)), r ~ stim,
+            gabor[(gabor$order == 'DECISION-RATING'),],
+            links = list(gamma = 'id_log'),
+            method = ''))
+cat(m$code, file = 'gamma_id_log.stan')
 
 ######################################################################
 ## simple hierarchical sdt model

@@ -6,9 +6,10 @@ parse.model.code = function(m){
     for(par in names(m$fixed)){
         ## gamma_prior_fixed_lb == 1, gamma_prior_fixed_ub == NA -> bounds.fe$gamma == 'l'
         bounds.fe[[par]] = ''
-        for(type in c('l', 'u'))
-            if(!is.na(m$sdata[[sprintf('%s_prior_fixed_%sb', par, type)]]))
+        for(type in c('l', 'u')){
+            if(!all(m$sdata[[sprintf('%s_prior_fixed_%sb', par, type)]] == ''))
                 bounds.fe[[par]] = paste(bounds.fe[[par]], type, sep = '')
+        }
     }
     for(par in names(m$random)){
         bounds.sd[[par]] = rep('', length(m$random[[par]]))

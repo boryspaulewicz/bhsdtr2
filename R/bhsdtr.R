@@ -23,58 +23,43 @@
 ##' for thr, and one for R. At present, only the logit link function
 ##' is implemented for the R parameter.
 ##' 
-##' @param model_formulae a vector of two or more lmer-style model
-##'     formulae for the parameters of the model. Every such vector
-##'     must contain a model formula for the thr (=thresholds)
-##'     parameter, and a model formula for either the dprim, the
-##'     metad, or the mean (general ordinal model) parameter. This
-##'     vector may have three elements iff it also contains a formula
-##'     for the sdratio (Unequal Variance models) parameter.
-##' @param response_formula a formula specifying the names of the
-##'     response variable and the stimulus variable. If this is an
-##'     SDT-like model this must be of the form resp ~ stim [+
-##'     modifier], where resp is the name of the combined response
-##'     variable or the binary response variable, stim is the name of
-##'     the (binary) stimulus variable, and the optional modifier
-##'     indicates something model-specific (e.g., the possibility of
-##'     recall in DPSDT).
-##' @param links a list specyfing the link functions, the default is
-##'     list(gamma = 'log_distance'). This list will be filled with
-##'     the default link function specifications for the remaining
-##'     parameters if these are not specified. Currently you can set
-##'     gamma to 'log_distance' (the default), 'log_ratio',
-##'     'twoparameter', 'parsimonious', and 'softmax'. The
-##'     log_distance and log_ratio link functions are described in the
-##'     Readme file in the github repository, the parsimonious link
-##'     function represents the thresholds using two parameters, the
-##'     unconstrained main criterion and the logarithm of the scaling
-##'     factor which is used to stretch the "unbiased" thresholds so
-##'     that the distribution of responses fits. The softmax link
-##'     function is described in the bhsdtr preprint. You can also
-##'     choose between delta = 'log' (the default, which covers both
-##'     the d' and the meta-d' parameters), and delta = 'identity'
-##'     (i.e., no conversion between delta and d' or meta-d').
-##' @param method [= 'jmap'] a string which specifies how to fit the
-##'     model. The default is 'jmap', which results in an attempt to
-##'     quickly maximize the joint posterior by using the
-##'     rstan::optimizing function, but you can also choose 'stan',
-##'     or, if you do not want the model to be fitted right away, you
-##'     can use anything else.
-##' @param prior [= NULL] a list with non-default prior settings which
-##'     will be passed to the set.prior function. See the set.prior
-##'     function documentation for details.
-##' @param thresholds_scale thresholds scaling factor for the softmax
-##'     gamma link function (see the bhsdtr preprint).
-##' @param force.id_log If FALSE (the default) separate intercepts
-##'     parametrization will be required for the delta / d' / meta-d'
-##'     model matrices when using the id_log link function.
+##' @param model_formulae a vector of two or more lmer-style model formulae for the parameters of
+##'     the model. Every such vector must contain a model formula for the thr (=thresholds)
+##'     parameter, and a model formula for either the dprim, the metad, or the mean (general ordinal
+##'     model) parameter. This vector may have three elements iff it also contains a formula for the
+##'     sdratio (Unequal Variance models) parameter.
+##' @param response_formula a formula specifying the names of the response variable and the stimulus
+##'     variable. If this is an SDT-like model this must be of the form resp ~ stim [+ modifier],
+##'     where resp is the name of the combined response variable or the binary response variable,
+##'     stim is the name of the (binary) stimulus variable, and the optional modifier indicates
+##'     something model-specific (e.g., the possibility of recall in DPSDT).
+##' @param links a list specyfing the link functions, the default is list(gamma =
+##'     'log_distance'). This list will be filled with the default link function specifications for
+##'     the remaining parameters if these are not specified. Currently you can set gamma to
+##'     'log_distance' (the default), 'log_ratio', 'twoparameter', 'parsimonious', and
+##'     'softmax'. The log_distance and log_ratio link functions are described in the Readme file in
+##'     the github repository, the parsimonious link function represents the thresholds using two
+##'     parameters, the unconstrained main criterion and the logarithm of the scaling factor which
+##'     is used to stretch the "unbiased" thresholds so that the distribution of responses fits. The
+##'     softmax link function is described in the bhsdtr preprint. You can also choose between delta
+##'     = 'log' (the default, which covers both the d' and the meta-d' parameters), and delta =
+##'     'identity' (i.e., no conversion between delta and d' or meta-d').
+##' @param method [= 'jmap'] a string which specifies how to fit the model. The default is 'jmap',
+##'     which results in an attempt to quickly maximize the joint posterior by using the
+##'     rstan::optimizing function, but you can also choose 'stan', or, if you do not want the model
+##'     to be fitted right away, you can use anything else.
+##' @param prior [= NULL] a list with non-default prior settings which will be passed to the
+##'     set.prior function. See the set.prior function documentation for details.
+##' @param thresholds_scale thresholds scaling factor for the softmax gamma link function (see the
+##'     bhsdtr preprint).
+##' @param force.id_log If FALSE (the default) separate intercepts parametrization will be required
+##'     for the delta / d' / meta-d' and the gamma / thresholds' model matrices when using the
+##'     id_log link function.
 ##' @param fit If TRUE (the default) then also fit the model
 ##' @param ... arguments to be passed to the stan function.
-##' @return a bhsdtr_model object, which is an S3 class object. If it
-##'     was fitted using the jmap (stan) method, $jmapfit ($stanfit)
-##'     contains the result. You can refit the model using either
-##'     method (fit(model, ...)) and the $jmapfit or the $stanfit slot
-##'     will be updated.
+##' @return a bhsdtr_model object, which is an S3 class object. If it was fitted using the jmap
+##'     (stan) method, $jmapfit ($stanfit) contains the result. You can refit the model using either
+##'     method (fit(model, ...)) and the $jmapfit or the $stanfit slot will be updated.
 ##' @examples
 ##' \donttest{
 ##'     gabor$r = combined.response(gabor$stim, gabor$rating, gabor$acc)
@@ -271,10 +256,11 @@ make.sdata.matrices = function(m, force.id_log = F){
         m$sdata[[sprintf('%s_is_fixed', par)]] = m$sdata[[sprintf('%s_fixed_value', par)]] =
             matrix(0, nrow = par.size(par, m$model, m$links, m$sdata$K)[1], ncol = ncol(m$sdata[[v]]))
         ## Fixed effects priors
+        for(prior.bound in c('fixed_lb', 'fixed_ub'))
+            m$sdata[[sprintf('%s_prior_%s', par, prior.bound)]] =
+                default.prior(m, par, ncol(m$sdata[[v]]), prior.bound)
         for(prior.par in c('fixed_mu', 'fixed_sd'))
             m$sdata[[sprintf('%s_prior_%s', par, prior.par)]] = default.prior(m, par, ncol(m$sdata[[v]]), prior.par)
-        for(prior.bound in c('lb', 'ub'))
-            m$sdata[[sprintf('%s_prior_fixed_%s', par, prior.bound)]] = NA
     }
     ## Random effects model matrices and priors
     for(par in names(m$random)){
@@ -370,18 +356,19 @@ fill.model.links = function(model, links, data, K){
     pars = unique(c(names(model$fixed), names(model$random)))
     if(!setequal(model_pars[[model$model]], pars))
         stop(sprintf('Model %s must specify effects for: %s', model, paste(model_pars[[model$model]], collapse = ', ')))
-    if(!(names(links) %in% pars))
+    if(!all(names(links) %in% pars))
         stop(sprintf('Found %s link specification but no model formula(e)',
                      paste(names(links)[!(names(links) %in% pars)], collapse = ', ')))
     ## data df = 2K - 2, uvsdt df = K - 1 + 2, 2K - 2 = K + 1 -> K = 3
     if((K < 3) & (model$model %in% c('uvsdt', 'metad', 'dpsdtcor')))
         stop(sprintf('Model %s needs K > 2', model))
-    par_links = list(gamma = c('log_distance', 'log_ratio', 'softmax', 'twoparameter', 'parsimonious', 'identity'),
-                     delta = c('log', 'id_log', 'log_logit', 'identity'),
+    ## The first link function in the vector is the default one
+    par_links = list(gamma = c('log_distance', 'log_ratio', 'softmax', 'twoparameter', 'parsimonious', 'identity', 'id_log'),
+                     delta = c('log', 'id_ratio_log', 'id_log', 'log_logit', 'identity'),
                      theta = c('log', 'logit'),
                      eta = c('identity'))
     for(par in names(links))
-        if(!(links[[par]] %in% par_links[[par]]))
+       if(!(links[[par]] %in% par_links[[par]]))
             stop(sprintf('Link %s not allowed for %s', links[[par]], par))
     ## Fill the missing fields in the links list
     for(par in model_pars[[model$model]])

@@ -111,7 +111,7 @@ transformed parameters{
   //cb,fpariter
   vector[PAR_size] PAR_fixef;
   vector[PAR_size] PAR_ranef;
-  vector[PAR_size] PAR;
+  vector[PAR_size] PAR; // the group-specific effect
   vector[PAR_size_] PAR_; // = invlink(PAR)
   //ce
   vector[K + 1] multinomial_cum;
@@ -152,14 +152,26 @@ transformed parameters{
     //cb,fpariter
     PAR_fixef = PAR_fixed_ * X_PAR[n]';
     for(i in 1:PAR_size)
-      PAR_ranef[i] = 0;
+      PAR_ranef[i] = 0; // this is how I handle the case when there are no random effects
     //ce
     //cb,rpariter
     PAR_ranef = PAR_ranef + PAR_random_G[PAR_group_G[n]] * Z_PAR_G[n]';
     //ce
     // Applying the inverse link functions
-    // gamma = gamma_fixef;
+    //cb{links$gamma == 'id_log'}
+    gamma_[Kb2] = gamma_fixef[Kb2] + gamma_ranef[Kb2]; // this threshold is unconstrained
+    if(K > 2){
+      for(k in 1:(Kb2 - 1))
+        // For instance, if K = 4 then Kb2 = 2, thr2 = gamma2 [computed above], and thr1 = thr2 - gamma_fixef[1] * exp(gamma_ranef[1])
+        gamma_[Kb2 - k] = gamma_[Kb2 - k + 1] - gamma_fixef[Kb2 - k] * exp(gamma_ranef[Kb2 - k]);
+      for(k in (Kb2 + 1):(K - 1))
+        // ... and thr3 = thr2 + gamma_fixef[3] * exp(gamma_ranef[3])
+        gamma_[k] = gamma_[k - 1] + gamma_fixef[k] * exp(gamma_ranef[k]);
+    }
+    //ce
+    //cb{links$gamma != 'id_log'}
     gamma = gamma_fixef + gamma_ranef;    
+    //ce
     //cb{links$gamma == 'identity'}
     for(k in 1:(K - 1))
       gamma_[k] = gamma[k];
@@ -218,13 +230,23 @@ transformed parameters{
     //cb{par != 'gamma' && links[[par]] == 'logit'},fpariter
     PAR_ = inv_logit(PAR_fixef + PAR_ranef);
     //ce
-    //cb{par != 'gamma' && links[[par]] == 'id_log'},fpariter
+    //cb{par != 'gamma' && links[[par]] %in% c('id_log', 'id_ratio_log')},fpariter
     for(i in 1:PAR_size)PAR_[i] = PAR_fixef[i] * exp(PAR_ranef[i]);
     //ce
     //cb{par != 'gamma' && links[[par]] == 'log_logit'},fpariter
     PAR_ = PAR_fixef + PAR_ranef;
     PAR_[1] = exp(PAR_[1]);
     PAR_[2] = inv_logit(PAR_[2]);
+    //ce
+    //cb{par == 'delta' && links[[par]] == 'log_logratio'},fpariter
+    PAR_ = PAR_fixef + PAR_ranef;
+    PAR_[1] = exp(PAR_[1]);
+    PAR_[2] = PAR_[1] * exp(PAR_[2]);
+    //ce
+    //cb{par == 'delta' && links[[par]] == 'id_ratio_log'},fpariter
+    PAR_ = PAR_fixef + PAR_ranef;
+    PAR_[1] = PAR_[1];
+    PAR_[2] = PAR_[1] * PAR_[2];
     //ce
     // Likelihood
     multinomial_cum[1] = 0;
@@ -327,13 +349,15 @@ model{
         log_diff_exp(normal_lcdf(PAR_prior_fixed_ub | PAR_prior_fixed_mu[i, j], PAR_prior_fixed_sd[i, j]),
                      normal_lcdf(PAR_prior_fixed_lb | PAR_prior_fixed_mu[i, j], PAR_prior_fixed_sd[i, j]));
   //ce
-  //cb,rpariter
-  // Random effects' priors
+  //cb{!all(sdata[[sprintf('%s_prior_random_scale_%d',par,g)]] == 0)},rpariter
+  // Random effects' sd priors
   for(i in 1:PAR_size)
     for(j in 1:Z_PAR_ncol_G){
       target += cauchy_lpdf(PAR_sd_G[i, j] | 0, PAR_prior_random_scale_G[i, j]);
       target += -cauchy_lccdf(0 | 0, PAR_prior_random_scale_G[i, j]);
     }
+  //ce
+  //cb,rpariter
   target += lkj_corr_cholesky_lpdf(L_corr_PAR_G | PAR_prior_random_nu_G);
   //ce
   //cb,rpariter

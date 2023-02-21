@@ -2,3 +2,4 @@
 .Rhistory
 .Ruserdata
 /inst/stan_templates/#likelihood_uvordinal.stan#
+tests/.Rhistory
