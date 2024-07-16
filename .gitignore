@@ -1,5 +1,7 @@
 .Rproj.user
 .Rhistory
 .Ruserdata
-/inst/stan_templates/#likelihood_uvordinal.stan#
-tests/.Rhistory
+.Rbuildignore
+tests/
+hmetad/
+tutorial/
